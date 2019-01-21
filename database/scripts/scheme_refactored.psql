@@ -73,7 +73,7 @@ CREATE TABLE posts (
 
 CREATE INDEX idx_post_threadid_path ON posts(thread_id,path);
 CREATE INDEX idx_post_threadid_path1_path ON posts(thread_id,(path[1]),path);
-CREATE INDEX idx_post_threadid_parentid_path1_path ON posts(thread_id,parent_id,(path[1]),path);
+--CREATE INDEX idx_post_threadid_parentid_path1_path ON posts(thread_id,parent_id,(path[1]),path);
 CREATE INDEX idx_post_threadid_parentid_path ON posts(thread_id,parent_id,path);
 CREATE INDEX idx_post_threadid_id ON posts(thread_id,id);
 
