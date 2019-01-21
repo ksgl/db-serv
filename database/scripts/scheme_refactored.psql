@@ -128,7 +128,6 @@ CREATE TRIGGER on_insert_post_update_path
 AFTER INSERT ON posts
 FOR EACH ROW EXECUTE PROCEDURE update_path();
 
-
 CREATE TABLE IF NOT EXISTS votes (
   nickname  CITEXT NOT NULL REFERENCES users(nickname),
   thread_id INT    NOT NULL REFERENCES threads(id),
