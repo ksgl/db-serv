@@ -844,52 +844,6 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 		// log.Println(limit)
 		rows, _ = db.Query(query.String(), id, since, limit)
 	case "parent_tree":
-		// if since != 0 {
-		// 	if desc {
-		// 		rows, _ = db.Query(selectPostsParentTreeLimitSinceDescByID, id, id,
-		// 			since, limit)
-		// 	} else {
-		// 		rows, _ = db.Query(selectPostsParentTreeLimitSinceByID, id, id,
-		// 			since, limit)
-		// 	}
-		// } else {
-		// 	if desc {
-		// 		rows, _ = db.Query(selectPostsParentTreeLimitDescByID, id, id,
-		// 			limit)
-		// 	} else {
-		// 		rows, _ = db.Query(selectPostsParentTreeLimitByID, id, id,
-		// 			limit)
-		// 	}
-		// }
-
-		// var descFlag string
-		// var sortAdd string
-		// var sinceAdd string
-		// var limitAdd string
-		// if limit != 0 {
-		// 	limitAdd = " WHERE rank <= " + strconv.Itoa(limit)
-		// }
-
-		// if desc {
-		// 	descFlag = " desc "
-		// 	sortAdd = "ORDER BY path[1] DESC, path "
-		// 	if since != 0 {
-		// 		sinceAdd = " AND path[1] < (SELECT path[1] FROM posts WHERE id = " + strconv.Itoa(since) + " ) "
-		// 	}
-		// } else {
-		// 	descFlag = " ASC "
-		// 	sortAdd = " ORDER BY path[1], path ASC"
-		// 	if since != 0 {
-		// 		sinceAdd = " AND path[1] > (SELECT path[1] FROM posts WHERE id = " + strconv.Itoa(since) + " ) "
-		// 	}
-		// }
-
-		// q = "SELECT id, author, created, edited, message, parent_id, forum_slug FROM (" +
-		// 	" SELECT id, author, created, edited, message, parent_id, forum_slug, " +
-		// 	" dense_rank() over (ORDER BY path[1] " + descFlag + " ) AS rank " +
-		// 	" FROM posts WHERE thread_id=$1 " + sinceAdd + " ) AS tree " + limitAdd + " " + sortAdd
-
-		// rows, err = db.Query(q, id)
 		var query strings.Builder
 		fmt.Fprint(&query, sqlGetPostsParentTree)
 		if since != 0 {
@@ -913,10 +867,13 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 			fmt.Fprint(&query, " ORDER BY p.path")
 		}
 
+		// log.Println(query.String())
+		// log.Println(id)
+		// log.Println(since)
+		// log.Println(limit)
 		rows, _ = db.Query(query.String(), id, since, limit)
 	}
-	// log.Println(err)
-	// log.Println(q)
+
 	posts := make(models.PostsArr, 0, limit)
 	for rows.Next() {
 		temp := models.Post{Thread: id}
@@ -924,7 +881,6 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 		posts = append(posts, &temp)
 
 	}
-	// log.Println(err)
 	rows.Close()
 
 	p, _ := posts.MarshalJSON()

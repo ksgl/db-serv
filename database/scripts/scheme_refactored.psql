@@ -83,6 +83,27 @@ create index a on posts(root,path);
 create index b on posts(thread_id, parent_id, id);
 --CREATE INDEX idx_post_id_path ON posts(id,path);
 
+-- CREATE FUNCTION update_path()
+--   RETURNS TRIGGER AS '
+--     BEGIN
+--     IF NEW.parent_id = 0 THEN
+--       UPDATE posts
+--         SET path = array_append(NEW.path, NEW.id),root=NEW.id
+--         WHERE id=NEW.id;
+--         RETURN NULL;
+--     END IF;
+--       UPDATE posts
+--         SET path = array_append(
+--             (SELECT path FROM posts WHERE id=NEW.parent_id), NEW.id), root=(SELECT path[1] FROM posts WHERE id=NEW.parent_id)
+--         WHERE id=NEW.id;
+--         RETURN NULL;
+--     END;
+-- ' LANGUAGE plpgsql;
+--   -- UPDATE posts
+--   --       SET root=path[1]
+--   --       WHERE id=NEW.id;
+
+
 CREATE FUNCTION update_path()
   RETURNS TRIGGER AS '
     BEGIN
@@ -94,14 +115,14 @@ CREATE FUNCTION update_path()
     END IF;
       UPDATE posts
         SET path = array_append(
-            (SELECT path FROM posts WHERE id=NEW.parent_id), NEW.id), root=(SELECT path[1] FROM posts WHERE id=NEW.parent_id)
+            (SELECT path FROM posts WHERE id=NEW.parent_id), NEW.id)
+        WHERE id=NEW.id;
+        UPDATE posts
+        SET root=path[1]
         WHERE id=NEW.id;
         RETURN NULL;
     END;
 ' LANGUAGE plpgsql;
-  -- UPDATE posts
-  --       SET root=path[1]
-  --       WHERE id=NEW.id;
 
 CREATE TRIGGER on_insert_post_update_path
 AFTER INSERT ON posts
