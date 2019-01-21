@@ -1,0 +1,12 @@
+#macos
+.DS_Store
+
+#functional test
+tech-db-forum
+report.html
+
+#performance test
+tech-db-forum.dat.gz
+
+#binary
+main

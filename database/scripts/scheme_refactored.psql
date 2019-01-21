@@ -1,0 +1,157 @@
+SET SYNCHRONOUS_COMMIT = 'off';
+CREATE EXTENSION IF NOT EXISTS CITEXT;
+
+-- cleanup
+
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS forums CASCADE;
+DROP TABLE IF EXISTS threads CASCADE;
+DROP TABLE IF EXISTS votes CASCADE;
+DROP TABLE IF EXISTS posts CASCADE;
+DROP TABLE IF EXISTS participants CASCADE;
+DROP FUNCTION IF EXISTS update_path();
+DROP FUNCTION IF EXISTS set_thread_votes();
+DROP FUNCTION IF EXISTS update_thread_votes();
+DROP FUNCTION IF EXISTS increment_posts();
+DROP FUNCTION IF EXISTS increment_threads();
+DROP FUNCTION IF EXISTS add_forum_participant_via_posts();
+DROP FUNCTION IF EXISTS add_forum_participant_via_threads();
+DROP TRIGGER IF EXISTS on_insert_post_update_path ON posts;
+DROP TRIGGER IF EXISTS on_insert_vote ON votes;
+DROP TRIGGER IF EXISTS on_update_vote ON votes;
+DROP TRIGGER IF EXISTS increment_forum_threads ON threads;
+DROP TRIGGER IF EXISTS increment_forum_posts ON posts;
+DROP TRIGGER IF EXISTS add_participant_via_posts ON posts;
+DROP TRIGGER IF EXISTS add_participant_via_threads ON threads;
+
+
+CREATE TABLE IF NOT EXISTS users (
+  nickname CITEXT         NOT NULL PRIMARY KEY,
+  about    TEXT,
+  email    CITEXT         NOT NULL,
+  fullname TEXT           NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_users_email ON users(email);
+
+CREATE TABLE IF NOT EXISTS forums (
+  slug    CITEXT    NOT NULL PRIMARY KEY,
+  posts   INT       NOT NULL DEFAULT 0,
+  threads INT       NOT NULL DEFAULT 0,
+  title   TEXT      NOT NULL,
+  "user"  CITEXT    NOT NULL REFERENCES users(nickname)
+);
+
+CREATE INDEX idx_forums_user ON forums("user");
+
+CREATE TABLE IF NOT EXISTS threads (
+  id        SERIAL      PRIMARY KEY,
+  author    CITEXT      NOT NULL REFERENCES users(nickname),
+  created   TIMESTAMPTZ DEFAULT now(),
+  forum     CITEXT      NOT NULL REFERENCES forums(slug),
+  message   TEXT        NOT NULL,
+  slug      CITEXT      DEFAULT NULL,
+  title     TEXT        NOT NULL,
+  votes     INT         NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX idx_threads_slug ON threads(slug);
+CREATE INDEX idx_threads_forum_created ON threads(forum,created);
+
+CREATE TABLE posts (
+  id          SERIAL      PRIMARY KEY,
+  path        INT[],
+  author      CITEXT      NOT NULL REFERENCES users(nickname),
+  created     TIMESTAMPTZ DEFAULT now(),
+  edited      BOOLEAN     DEFAULT FALSE,
+  message     TEXT,
+  parent_id   INT         DEFAULT 0,
+  forum_slug  CITEXT      NOT NULL,
+  thread_id   INT         NOT NULL,
+  root        INT         DEFAULT 0
+);
+
+CREATE INDEX idx_post_threadid_path ON posts(thread_id,path);
+CREATE INDEX idx_post_threadid_path1_path ON posts(thread_id,(path[1]),path);
+CREATE INDEX idx_post_threadid_parentid_path1_path ON posts(thread_id,parent_id,(path[1]),path);
+CREATE INDEX idx_post_threadid_parentid_path ON posts(thread_id,parent_id,path);
+CREATE INDEX idx_post_threadid_id ON posts(thread_id,id);
+
+CREATE FUNCTION update_path()
+  RETURNS TRIGGER AS '
+    BEGIN
+    IF NEW.parent_id = 0 THEN
+      UPDATE posts
+        SET path = array_append(NEW.path, NEW.id), root=new.path[1]
+        WHERE id=NEW.id;
+        RETURN NULL;
+    END IF;
+      UPDATE posts
+        SET path = array_append(
+            (SELECT path FROM posts WHERE id=NEW.parent_id), NEW.id)
+        WHERE id=NEW.id;
+        UPDATE posts
+        SET root=path[1]
+        WHERE id=NEW.id;
+        RETURN NULL;
+    END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER on_insert_post_update_path
+AFTER INSERT ON posts
+FOR EACH ROW EXECUTE PROCEDURE update_path();
+
+
+CREATE TABLE IF NOT EXISTS votes (
+  nickname  CITEXT NOT NULL REFERENCES users(nickname),
+  thread_id INT    NOT NULL REFERENCES threads(id),
+  voice     INT    NOT NULL,
+
+  PRIMARY KEY (thread_id,nickname)
+);
+
+-- +
+CREATE FUNCTION set_thread_votes()
+  RETURNS TRIGGER AS '
+    BEGIN
+        UPDATE threads
+        SET votes=votes+NEW.voice
+        WHERE id=NEW.thread_id;
+        RETURN NULL;
+    END;
+' LANGUAGE plpgsql;
+
+
+CREATE TRIGGER on_insert_vote
+AFTER INSERT ON votes
+FOR EACH ROW EXECUTE PROCEDURE set_thread_votes();
+
+-- +
+CREATE FUNCTION update_thread_votes()
+  RETURNS TRIGGER AS '
+    BEGIN
+      IF OLD.voice=NEW.voice THEN
+        RETURN NULL;
+      END IF;
+      UPDATE threads
+      SET votes=votes+ CASE
+                        WHEN NEW.voice = -1 THEN -2
+                        ELSE 2
+                        END
+      WHERE id=NEW.thread_id;
+      RETURN NULL;
+    END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER on_update_vote
+AFTER UPDATE ON votes
+FOR EACH ROW EXECUTE PROCEDURE update_thread_votes();
+
+-- participants section
+
+CREATE TABLE participants (
+   nickname   CITEXT NOT NULL,
+   forum_slug CITEXT NOT NULL,
+
+   CONSTRAINT participants_pkey UNIQUE (forum_slug,nickname) --orderby!
+);
