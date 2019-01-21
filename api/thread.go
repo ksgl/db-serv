@@ -12,6 +12,12 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+// const sqlGetPostsFlat = `
+// 	SELECT p.author, p.created, p.forum, p.isedited, p.message, p.parent, p.thread, p.id
+// 	FROM posts p
+// 	WHERE thread = $1
+// `
+
 const selectPostsFlatLimitByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, p.parent_id, p.forum_slug
 	FROM posts p
@@ -785,16 +791,32 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	case "flat":
 		if since != 0 {
 			if desc {
+				// log.Println(selectPostsFlatLimitSinceDescByID)
+				// log.Println(id)
+				// log.Println(since)
+				// log.Println(limit)
 				rows, _ = db.Query(selectPostsFlatLimitSinceDescByID, id,
 					since, limit)
 			} else {
+				// log.Println(selectPostsFlatLimitSinceByID)
+				// log.Println(id)
+				// log.Println(since)
+				// log.Println(limit)
 				rows, _ = db.Query(selectPostsFlatLimitSinceByID, id,
 					since, limit)
 			}
 		} else {
 			if desc {
+				// log.Println(selectPostsFlatLimitDescByID)
+				// log.Println(id)
+				// log.Println(since)
+				// log.Println(limit)
 				rows, _ = db.Query(selectPostsFlatLimitDescByID, id, limit)
 			} else {
+				// log.Println(selectPostsFlatLimitByID)
+				// log.Println(id)
+				// log.Println(since)
+				// log.Println(limit)
 				rows, _ = db.Query(selectPostsFlatLimitByID, id, limit)
 			}
 		}
