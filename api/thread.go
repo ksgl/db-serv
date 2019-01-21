@@ -818,6 +818,10 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 		}
 		fmt.Fprint(&query, " LIMIT $3")
 
+		log.Println(query.String())
+		log.Println(id)
+		log.Println(since)
+		log.Println(limit)
 		rows, _ = db.Query(query.String(), id, since, limit)
 	case "parent_tree":
 		// if since != 0 {
@@ -889,10 +893,6 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 			fmt.Fprint(&query, " ORDER BY p.path")
 		}
 
-		log.Println(query.String())
-		log.Println(id)
-		log.Println(since)
-		log.Println(limit)
 		rows, _ = db.Query(query.String(), id, since, limit)
 	}
 	// log.Println(err)
