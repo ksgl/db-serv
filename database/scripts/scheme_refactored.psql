@@ -74,9 +74,13 @@ CREATE TABLE posts (
 CREATE INDEX idx_post_threadid_path ON posts(thread_id,path); --bessmisl
 
 --CREATE INDEX idx_post_threadid_path1_path ON posts(thread_id,(path[1]),path);
+--CREATE INDEX idx_post_threadid_path1_path ON posts(id,(path[1]),path);
 --CREATE INDEX idx_post_threadid_parentid_path1_path ON posts(thread_id,parent_id,(path[1]),path);
 --CREATE INDEX idx_post_threadid_parentid_path ON posts(thread_id,parent_id,path);
 CREATE INDEX idx_post_threadid_id ON posts(thread_id,id);
+CREATE INDEX idx_post_root_id ON posts(root,id);
+create index a on posts(root,path);
+create index b on posts(thread_id, parent_id, id);
 --CREATE INDEX idx_post_id_path ON posts(id,path);
 
 CREATE FUNCTION update_path()
@@ -86,11 +90,17 @@ CREATE FUNCTION update_path()
       UPDATE posts
         SET path = array_append(NEW.path, NEW.id)
         WHERE id=NEW.id;
+        UPDATE posts
+        SET root=path[1]
+        WHERE id=NEW.id;
         RETURN NULL;
     END IF;
       UPDATE posts
         SET path = array_append(
             (SELECT path FROM posts WHERE id=NEW.parent_id), NEW.id)
+        WHERE id=NEW.id;
+        UPDATE posts
+        SET root=path[1]
         WHERE id=NEW.id;
         RETURN NULL;
     END;

@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"forum/models"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -132,6 +133,12 @@ const sqlGetPostsFlat = `
 	FROM posts p
 	WHERE thread_id = $1
 	`
+
+const sqlGetPostsParentTree = `
+	SELECT p.id, p.author, p.created, p.edited, p.message, p.parent_id, p.forum_slug
+	FROM posts p
+	WHERE root IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id=0
+`
 
 const (
 	selDescLimitSince = `SELECT id,author,created,message,COALESCE(slug,''),title,votes
@@ -531,7 +538,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 		parents[pid] = tmp
 	}
 
-	_, ok := UsersCheck(authorsSet)
+	uids, ok := UsersCheck(authorsSet)
 	if !ok {
 		ErrRespond(ctx, fasthttp.StatusNotFound)
 
@@ -583,13 +590,14 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 
 	var insertParticipants strings.Builder
 	fmt.Fprintf(&insertParticipants, `INSERT INTO participants(nickname,forum_slug) VALUES `)
-	for idx, u := range posts {
-		if idx == size-1 {
-			fmt.Fprintf(&insertParticipants, `('%s', '%s')`, u.Author, forum)
-		} else {
-			fmt.Fprintf(&insertParticipants, `('%s', '%s'),`, u.Author, forum)
-		}
+	for nickname := range uids {
+		// if idx == size-1 {
+		// 	fmt.Fprintf(&insertParticipants, `('%s', '%s')`, nickname, forum)
+		// } else {
+		fmt.Fprintf(&insertParticipants, `('%s', '%s'),`, nickname, forum)
+		// }
 	}
+	fmt.Fprintf(&insertParticipants, `('', '')`)
 	fmt.Fprintf(&insertParticipants, ` ON CONFLICT DO NOTHING;`)
 
 	tx.Exec(insertParticipants.String())
@@ -770,6 +778,7 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	}
 
 	var rows *pgx.Rows
+	var err error
 
 	switch sort {
 	case "":
@@ -811,32 +820,91 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 
 		rows, _ = db.Query(query.String(), id, since, limit)
 	case "parent_tree":
+		// if since != 0 {
+		// 	if desc {
+		// 		rows, _ = db.Query(selectPostsParentTreeLimitSinceDescByID, id, id,
+		// 			since, limit)
+		// 	} else {
+		// 		rows, _ = db.Query(selectPostsParentTreeLimitSinceByID, id, id,
+		// 			since, limit)
+		// 	}
+		// } else {
+		// 	if desc {
+		// 		rows, _ = db.Query(selectPostsParentTreeLimitDescByID, id, id,
+		// 			limit)
+		// 	} else {
+		// 		rows, _ = db.Query(selectPostsParentTreeLimitByID, id, id,
+		// 			limit)
+		// 	}
+		// }
+
+		// var descFlag string
+		// var sortAdd string
+		// var sinceAdd string
+		// var limitAdd string
+		// if limit != 0 {
+		// 	limitAdd = " WHERE rank <= " + strconv.Itoa(limit)
+		// }
+
+		// if desc {
+		// 	descFlag = " desc "
+		// 	sortAdd = "ORDER BY path[1] DESC, path "
+		// 	if since != 0 {
+		// 		sinceAdd = " AND path[1] < (SELECT path[1] FROM posts WHERE id = " + strconv.Itoa(since) + " ) "
+		// 	}
+		// } else {
+		// 	descFlag = " ASC "
+		// 	sortAdd = " ORDER BY path[1], path ASC"
+		// 	if since != 0 {
+		// 		sinceAdd = " AND path[1] > (SELECT path[1] FROM posts WHERE id = " + strconv.Itoa(since) + " ) "
+		// 	}
+		// }
+
+		// q = "SELECT id, author, created, edited, message, parent_id, forum_slug FROM (" +
+		// 	" SELECT id, author, created, edited, message, parent_id, forum_slug, " +
+		// 	" dense_rank() over (ORDER BY path[1] " + descFlag + " ) AS rank " +
+		// 	" FROM posts WHERE thread_id=$1 " + sinceAdd + " ) AS tree " + limitAdd + " " + sortAdd
+
+		// rows, err = db.Query(q, id)
+		var query strings.Builder
+		fmt.Fprint(&query, sqlGetPostsParentTree)
 		if since != 0 {
 			if desc {
-				rows, _ = db.Query(selectPostsParentTreeLimitSinceDescByID, id, id,
-					since, limit)
+				fmt.Fprint(&query, " AND p2.id < (SELECT root FROM posts WHERE id=$2)")
 			} else {
-				rows, _ = db.Query(selectPostsParentTreeLimitSinceByID, id, id,
-					since, limit)
+				fmt.Fprint(&query, " AND p2.id > (SELECT root FROM posts WHERE id=$2)")
 			}
 		} else {
-			if desc {
-				rows, _ = db.Query(selectPostsParentTreeLimitDescByID, id, id,
-					limit)
-			} else {
-				rows, _ = db.Query(selectPostsParentTreeLimitByID, id, id,
-					limit)
-			}
+			fmt.Fprint(&query, " AND $2 = 0")
 		}
-	}
+		if desc {
+			fmt.Fprint(&query, " ORDER BY p2.id DESC")
+		} else {
+			fmt.Fprint(&query, " ORDER BY p2.id")
+		}
+		fmt.Fprint(&query, " LIMIT $3)")
+		if desc {
+			fmt.Fprint(&query, " ORDER BY root DESC, p.path")
+		} else {
+			fmt.Fprint(&query, " ORDER BY p.path")
+		}
 
+		log.Println(query.String())
+		log.Println(id)
+		log.Println(since)
+		log.Println(limit)
+		rows, _ = db.Query(query.String(), id, since, limit)
+	}
+	// log.Println(err)
+	// log.Println(q)
 	posts := make(models.PostsArr, 0, limit)
 	for rows.Next() {
 		temp := models.Post{Thread: id}
-		rows.Scan(&temp.ID, &temp.Author, &temp.Created, &temp.IsEdited, &temp.Message, &temp.Parent, &temp.Forum)
+		err = rows.Scan(&temp.ID, &temp.Author, &temp.Created, &temp.IsEdited, &temp.Message, &temp.Parent, &temp.Forum)
 		posts = append(posts, &temp)
-		// log.Println(err)
+
 	}
+	log.Println(err)
 	rows.Close()
 
 	p, _ := posts.MarshalJSON()
