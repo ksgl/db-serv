@@ -127,6 +127,12 @@ const selectPostsParentTreeLimitSinceDescByID = `
 	ORDER BY p.path[1] DESC, p.path
 `
 
+const sqlGetPostsFlat = `
+	SELECT p.id, p.author, p.created, p.edited, p.message, p.parent_id, p.forum_slug
+	FROM posts p
+	WHERE thread_id = $1
+	`
+
 const (
 	selDescLimitSince = `SELECT id,author,created,message,COALESCE(slug,''),title,votes
 					FROM threads
@@ -742,7 +748,7 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 
 	desc := ctx.QueryArgs().GetBool("desc")
 	limit := ctx.QueryArgs().GetUintOrZero("limit")
-	since := string(ctx.QueryArgs().Peek("since"))
+	since := ctx.QueryArgs().GetUintOrZero("since")
 	sort := string(ctx.QueryArgs().Peek("sort"))
 
 	var id int32
@@ -769,7 +775,7 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	case "":
 		fallthrough
 	case "flat":
-		if since != "" {
+		if since != 0 {
 			if desc {
 				rows, _ = db.Query(selectPostsFlatLimitSinceDescByID, id,
 					since, limit)
@@ -785,23 +791,27 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 			}
 		}
 	case "tree":
-		if since != "" {
+		var query strings.Builder
+		fmt.Fprint(&query, sqlGetPostsFlat)
+		if since != 0 {
 			if desc {
-				rows, _ = db.Query(selectPostsTreeLimitSinceDescByID, id,
-					since, limit)
+				fmt.Fprint(&query, " AND p.path < (SELECT path FROM posts WHERE id = $2)")
 			} else {
-				rows, _ = db.Query(selectPostsTreeLimitSinceByID, id,
-					since, limit)
+				fmt.Fprint(&query, " AND p.path > (SELECT path FROM posts WHERE id = $2)")
 			}
 		} else {
-			if desc {
-				rows, _ = db.Query(selectPostsTreeLimitDescByID, id, limit)
-			} else {
-				rows, _ = db.Query(selectPostsTreeLimitByID, id, limit)
-			}
+			fmt.Fprint(&query, " AND $2 = 0")
 		}
+		if desc {
+			fmt.Fprint(&query, " ORDER BY p.path DESC")
+		} else {
+			fmt.Fprint(&query, " ORDER BY p.path")
+		}
+		fmt.Fprint(&query, " LIMIT $3")
+
+		rows, _ = db.Query(query.String(), id, since, limit)
 	case "parent_tree":
-		if since != "" {
+		if since != 0 {
 			if desc {
 				rows, _ = db.Query(selectPostsParentTreeLimitSinceDescByID, id, id,
 					since, limit)
