@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"forum/models"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -778,7 +777,7 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	}
 
 	var rows *pgx.Rows
-	var err error
+	//var err error
 
 	switch sort {
 	case "":
@@ -818,10 +817,10 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 		}
 		fmt.Fprint(&query, " LIMIT $3")
 
-		log.Println(query.String())
-		log.Println(id)
-		log.Println(since)
-		log.Println(limit)
+		// log.Println(query.String())
+		// log.Println(id)
+		// log.Println(since)
+		// log.Println(limit)
 		rows, _ = db.Query(query.String(), id, since, limit)
 	case "parent_tree":
 		// if since != 0 {
@@ -900,11 +899,11 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	posts := make(models.PostsArr, 0, limit)
 	for rows.Next() {
 		temp := models.Post{Thread: id}
-		err = rows.Scan(&temp.ID, &temp.Author, &temp.Created, &temp.IsEdited, &temp.Message, &temp.Parent, &temp.Forum)
+		rows.Scan(&temp.ID, &temp.Author, &temp.Created, &temp.IsEdited, &temp.Message, &temp.Parent, &temp.Forum)
 		posts = append(posts, &temp)
 
 	}
-	log.Println(err)
+	// log.Println(err)
 	rows.Close()
 
 	p, _ := posts.MarshalJSON()
