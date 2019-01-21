@@ -5,7 +5,6 @@ import (
 	"forum/models"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx"
 	"github.com/lib/pq"
@@ -559,8 +558,8 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 			p.Path = []int32{}
 		}
 	}
-	created := time.Now().Format("2006-01-02T15:04:05.999999999Z07:00")
-	b, a := postQueryBuilder(posts, obtainedID, created)
+	// created := time.Now().Format("2006-01-02T15:04:05.999999999Z07:00")
+	b, a := postQueryBuilder(posts, obtainedID)
 
 	tx, _ := db.Begin()
 	defer tx.Rollback()
@@ -615,20 +614,20 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 	return
 }
 
-func postQueryBuilder(ps models.PostsArr, tid int, created string) (*strings.Builder, []interface{}) {
+func postQueryBuilder(ps models.PostsArr, tid int) (*strings.Builder, []interface{}) {
 	b := &strings.Builder{}
 	a := []interface{}{}
 
-	b.WriteString("INSERT INTO posts(author, thread_id, message, parent_id, edited, created, path, forum_slug) VALUES ")
+	b.WriteString("INSERT INTO posts(author, thread_id, message, parent_id, edited, path, forum_slug) VALUES ")
 	for i, p := range ps {
 		if i != 0 {
 			b.WriteString(", ")
 		}
 
-		c := 7 * i
-		b.WriteString(fmt.Sprintf("($%d, $%d, $%d, $%d, false, $%d, $%d, $%d)",
-			c+1, c+2, c+3, c+4, c+5, c+6, c+7))
-		a = append(a, p.Author, tid, p.Message, p.Parent, created, pq.Array(p.Path), p.Forum)
+		c := 6 * i
+		b.WriteString(fmt.Sprintf("($%d, $%d, $%d, $%d, false, $%d, $%d)",
+			c+1, c+2, c+3, c+4, c+5, c+6))
+		a = append(a, p.Author, tid, p.Message, p.Parent, pq.Array(p.Path), p.Forum)
 	}
 	b.WriteString(" RETURNING created, id")
 

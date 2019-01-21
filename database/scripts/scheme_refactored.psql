@@ -71,7 +71,7 @@ CREATE TABLE posts (
   root        INT         DEFAULT 0
 );
 
-CREATE INDEX idx_post_threadid_path ON posts(thread_id,path); --bessmisl
+--CREATE INDEX idx_post_threadid_path ON posts(thread_id,path); --bessmisl
 
 --CREATE INDEX idx_post_threadid_path1_path ON posts(thread_id,(path[1]),path);
 --CREATE INDEX idx_post_threadid_path1_path ON posts(id,(path[1]),path);
@@ -88,23 +88,20 @@ CREATE FUNCTION update_path()
     BEGIN
     IF NEW.parent_id = 0 THEN
       UPDATE posts
-        SET path = array_append(NEW.path, NEW.id)
-        WHERE id=NEW.id;
-        UPDATE posts
-        SET root=path[1]
+        SET path = array_append(NEW.path, NEW.id),root=NEW.id
         WHERE id=NEW.id;
         RETURN NULL;
     END IF;
       UPDATE posts
         SET path = array_append(
-            (SELECT path FROM posts WHERE id=NEW.parent_id), NEW.id)
-        WHERE id=NEW.id;
-        UPDATE posts
-        SET root=path[1]
+            (SELECT path FROM posts WHERE id=NEW.parent_id), NEW.id), root=(SELECT path[1] FROM posts WHERE id=NEW.parent_id)
         WHERE id=NEW.id;
         RETURN NULL;
     END;
 ' LANGUAGE plpgsql;
+  -- UPDATE posts
+  --       SET root=path[1]
+  --       WHERE id=NEW.id;
 
 CREATE TRIGGER on_insert_post_update_path
 AFTER INSERT ON posts
