@@ -65,10 +65,9 @@ CREATE TABLE posts (
   created     TIMESTAMPTZ DEFAULT now(),
   edited      BOOLEAN     DEFAULT FALSE,
   message     TEXT,
-  parent_id   INT         DEFAULT 0,
+  parent_id   INT REFERENCES posts(id),
   forum_slug  CITEXT      NOT NULL,
-  thread_id   INT         NOT NULL,
-  root        INT         DEFAULT 0
+  thread_id   INT         NOT NULL
 );
 
 --CREATE INDEX idx_post_threadid_path ON posts(thread_id,path); --bessmisl
@@ -77,10 +76,12 @@ CREATE TABLE posts (
 --CREATE INDEX idx_post_threadid_path1_path ON posts(id,(path[1]),path);
 --CREATE INDEX idx_post_threadid_parentid_path1_path ON posts(thread_id,parent_id,(path[1]),path);
 --CREATE INDEX idx_post_threadid_parentid_path ON posts(thread_id,parent_id,path);
-CREATE INDEX idx_post_threadid_id ON posts(thread_id,id);
-CREATE INDEX idx_post_root_id ON posts(root,id);
-create index a on posts(root,path);
-create index b on posts(thread_id, parent_id, id);
+------------root
+-- CREATE INDEX idx_post_threadid_id ON posts(thread_id,id);
+-- CREATE INDEX idx_post_root_id ON posts(root,id);
+-- create index a on posts(root,path);
+-- create index b on posts(thread_id, parent_id, id);
+---------------
 --CREATE INDEX idx_post_id_path ON posts(id,path);
 
 -- CREATE FUNCTION update_path()
@@ -103,13 +104,23 @@ create index b on posts(thread_id, parent_id, id);
 --   --       SET root=path[1]
 --   --       WHERE id=NEW.id;
 
+--new
+CREATE INDEX idx_post_thid_cr_id ON posts(thread_id, id); --flat
+CREATE INDEX idx_post_thid_path ON posts(thread_id, path); --tree
+CREATE INDEX idx_post_forum ON posts(forum_slug);
+CREATE INDEX idx_post_thread_id_id ON posts(thread_id, id, parent_id); --parent tree
+CREATE INDEX idx_post_thread_id_parent_id ON posts(thread_id, parent_id);
+CREATE INDEX idx_posts_root_path      ON posts ((path[1]), path);
+CREATE INDEX idx_posts_main      ON posts (id); -- parent_tree, flat
+--CLUSTER posts USING idx_post_crid;
 
-CREATE FUNCTION update_path()
-  RETURNS TRIGGER AS '
-    BEGIN
-    IF NEW.parent_id = 0 THEN
+
+CREATE OR REPLACE FUNCTION update_path()
+RETURNS TRIGGER AS '
+  BEGIN
+    IF NEW.parent_id = NULL THEN
       UPDATE posts
-        SET path = array_append(NEW.path, NEW.id),root=NEW.id
+        SET path = array_append(NEW.path, NEW.id)
         WHERE id=NEW.id;
         RETURN NULL;
     END IF;
@@ -117,11 +128,8 @@ CREATE FUNCTION update_path()
         SET path = array_append(
             (SELECT path FROM posts WHERE id=NEW.parent_id), NEW.id)
         WHERE id=NEW.id;
-        UPDATE posts
-        SET root=path[1]
-        WHERE id=NEW.id;
         RETURN NULL;
-    END;
+  END;
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER on_insert_post_update_path

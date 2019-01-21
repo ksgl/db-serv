@@ -20,19 +20,19 @@ const (
 					WHERE id=$2
 					RETURNING author,created,forum_slug,edited,message,thread_id;`
 
-	selectPost = `SELECT parent_id,thread_id,message,edited,created,forum_slug,author
+	selectPost = `SELECT COALESCE(parent_id,0),thread_id,message,edited,created,forum_slug,author
 					FROM posts
 					WHERE id=$1;`
 )
 
 const (
 	r = `
-	SELECT p.parent_id,p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author
+	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author
 	FROM posts p
 	WHERE p.id=$1;`
 
 	rUTF = `
-	SELECT p.parent_id,p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			u.nickname,u.about,u.fullname,u.email,
 			t.author,t.created,t.votes,t.id,t.title,t.message,COALESCE(t.slug,''),t.forum,
 			f.slug,f.threads,f.title,f.posts,f."user"
@@ -46,7 +46,7 @@ const (
 	WHERE p.id=$1;`
 
 	rUT = `
-	SELECT p.parent_id,p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			u.nickname,u.about,u.fullname,u.email,
 			t.author,t.created,t.votes,t.id,t.title,t.message,COALESCE(t.slug,''),t.forum
 	FROM posts p
@@ -57,7 +57,7 @@ const (
 	WHERE p.id=$1;`
 
 	rUF = `
-	SELECT p.parent_id,p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			u.nickname,u.about,u.fullname,u.email,
 			f.slug,f.threads,f.title,f.posts,f."user"
 	FROM posts p
@@ -68,7 +68,7 @@ const (
 	WHERE p.id=$1;`
 
 	rU = `
-	SELECT p.parent_id,p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			u.nickname,u.about,u.fullname,u.email
 	FROM posts p
 	LEFT JOIN users AS u
@@ -76,7 +76,7 @@ const (
 	WHERE p.id=$1;`
 
 	rT = `
-	SELECT p.parent_id,p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			t.author,t.created,t.votes,t.id,t.title,t.message,COALESCE(t.slug,''),t.forum
 	FROM posts p
 	LEFT JOIN threads AS t
@@ -84,7 +84,7 @@ const (
 	WHERE p.id=$1;`
 
 	rTF = `
-	SELECT p.parent_id,p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			t.author,t.created,t.votes,t.id,t.title,t.message,COALESCE(t.slug,''),t.forum,
 			f.slug,f.threads,f.title,f.posts,f."user"
 	FROM posts p
@@ -95,7 +95,7 @@ const (
 	WHERE p.id=$1;`
 
 	rF = `
-	SELECT p.parent_id,p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			f.slug,f.threads,f.title,f.posts,f."user"
 	FROM posts p
 	LEFT JOIN forums AS f
