@@ -82,16 +82,13 @@ CREATE FUNCTION update_path()
     BEGIN
     IF NEW.parent_id = 0 THEN
       UPDATE posts
-        SET path = array_append(NEW.path, NEW.id), root=new.path[1]
+        SET path = array_append(NEW.path, NEW.id)
         WHERE id=NEW.id;
         RETURN NULL;
     END IF;
       UPDATE posts
         SET path = array_append(
             (SELECT path FROM posts WHERE id=NEW.parent_id), NEW.id)
-        WHERE id=NEW.id;
-        UPDATE posts
-        SET root=path[1]
         WHERE id=NEW.id;
         RETURN NULL;
     END;
