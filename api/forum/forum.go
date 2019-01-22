@@ -1,11 +1,9 @@
 package forum
 
 import (
-	"fmt"
 	ut "forum/api/utility"
 	"forum/database"
 	"forum/models"
-	"strings"
 
 	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
@@ -41,69 +39,85 @@ const (
 			WHERE uf.forum_slug = $1
 		`
 
-	// descSlugSinceLimit = `SELECT nickname,about,fullname,email
-	// 						FROM "users"
-	// 						WHERE nickname IN
-	// 							(SELECT nickname FROM participants
-	// 							WHERE forum_slug=$1)
-	// 					 	AND nickname < $2
-	// 						ORDER BY nickname DESC
-	// 						LIMIT $3;`
+	descSlugSinceLimit = `SELECT u.nickname,u.about,u.fullname,u.email
+							FROM
+							"users" u JOIN
+							"participants" p ON (u.id = p.id)
+							WHERE
+							p.forum_slug = $1 AND
+							p.nickname < $2
+							ORDER BY
+							p.nickname DESC
+							LIMIT $3;`
 
-	// descSlugLimit = `SELECT nickname,about,fullname,email
-	// 					FROM "users"
-	// 					WHERE nickname IN
-	// 						(SELECT nickname FROM participants
-	// 						WHERE forum_slug=$1)
-	// 					ORDER BY nickname DESC
-	// 					LIMIT $2;`
+	descSlugLimit = `SELECT u.nickname,u.about,u.fullname,u.email
+						FROM
+						"users" u JOIN
+						"participants" p ON (u.id = p.id)
+						WHERE
+						p.forum_slug = $1
+						ORDER BY
+						p.nickname DESC
+						LIMIT $2;`
 
-	// descSlugSince = `SELECT nickname,about,fullname,email
-	// 					FROM "users"
-	// 					WHERE nickname IN
-	// 						(SELECT nickname FROM participants
-	// 						WHERE forum_slug=$1)
-	// 					AND nickname < $2
-	// 					ORDER BY nickname DESC;`
+	descSlugSince = `SELECT u.nickname,u.about,u.fullname,u.email
+					FROM
+					"users" u JOIN
+					"participants" p ON (u.id = p.id)
+					WHERE
+					p.forum_slug = $1 AND
+					p.nickname < $2
+					ORDER BY
+					p.nickname DESC;`
 
-	// descSlug = `SELECT nickname,about,fullname,email
-	// 					FROM "users"
-	// 					WHERE nickname IN
-	// 						(SELECT nickname FROM participants
-	// 						WHERE forum_slug=$1)
-	// 					ORDER BY nickname DESC;`
+	descSlug = `SELECT u.nickname,u.about,u.fullname,u.email
+				FROM
+				"users" u JOIN
+				"participants" p ON (u.id = p.id)
+				WHERE
+				p.forum_slug = $1
+				ORDER BY
+				p.nickname DESC;`
 
-	// ascSlugSinceLimit = `SELECT nickname,about,fullname,email
-	// 					FROM "users"
-	// 					WHERE nickname IN
-	// 						(SELECT nickname FROM participants
-	// 						WHERE forum_slug=$1)
-	// 					AND nickname > $2
-	// 					ORDER BY nickname ASC
-	// 					LIMIT $3;`
+	ascSlugSinceLimit = `SELECT u.nickname,u.about,u.fullname,u.email
+							FROM
+							"users" u JOIN
+							"participants" p ON (u.id = p.id)
+							WHERE
+							p.forum_slug = $1 AND
+							p.nickname > $2
+							ORDER BY
+							p.nickname ASC
+							LIMIT $3;`
 
-	// ascSlugLimit = `SELECT nickname,about,fullname,email
-	// 				FROM "users"
-	// 				WHERE nickname IN
-	// 					(SELECT nickname FROM participants
-	// 					WHERE forum_slug=$1)
-	// 				ORDER BY nickname ASC
-	// 				LIMIT $2;`
+	ascSlugLimit = `SELECT u.nickname,u.about,u.fullname,u.email
+					FROM
+					"users" u JOIN
+					"participants" p ON (u.id = p.id)
+					WHERE
+					p.forum_slug = $1
+					ORDER BY
+					p.nickname ASC
+					LIMIT $2;`
 
-	// ascSlugSince = `SELECT nickname,about,fullname,email
-	// 				FROM "users"
-	// 				WHERE nickname IN
-	// 					(SELECT nickname FROM participants
-	// 					WHERE forum_slug=$1)
-	// 				AND nickname > $2
-	// 				ORDER BY nickname ASC;`
+	ascSlugSince = `SELECT u.nickname,u.about,u.fullname,u.email
+					FROM
+					"users" u JOIN
+					"participants" p ON (u.id = p.id)
+					WHERE
+					p.forum_slug = $1 AND
+					p.nickname > $2
+					ORDER BY
+					p.nickname ASC;`
 
-	// ascSlug = `SELECT nickname,about,fullname,email
-	// 			FROM "users"
-	// 			WHERE nickname IN
-	// 				(SELECT nickname FROM participants
-	// 				WHERE forum_slug=$1)
-	// 			ORDER BY nickname ASC;`
+	ascSlug = `SELECT u.nickname,u.about,u.fullname,u.email
+				FROM
+				"users" u JOIN
+				"participants" p ON (u.id = p.id)
+				WHERE
+				p.forum_slug = $1
+				ORDER BY
+				p.nickname ASC`
 )
 
 func CreateForum(ctx *fasthttp.RequestCtx) {
@@ -175,59 +189,59 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// var rows *pgx.Rows
-	var query strings.Builder
-	query.WriteString(sqlSelectUserForum)
-	if since != "" {
-		if desc {
-			fmt.Fprint(&query, " AND uf.nickname < $2")
-		} else {
-			fmt.Fprint(&query, " AND uf.nickname > $2 ")
-		}
-	} else {
-		fmt.Fprint(&query, " AND $2 = ''")
-	}
-	if desc {
-		fmt.Fprint(&query, " ORDER BY uf.nickname DESC")
-	} else {
-		fmt.Fprint(&query, " ORDER BY uf.nickname ASC")
-	}
-	if limit > 0 {
-		fmt.Fprint(&query, " LIMIT $3")
-	} else {
-		fmt.Fprint(&query, " LIMIT 100000+$3")
-	}
-	rows, _ := db.Query(query.String(), slug, since, limit)
-
-	// if desc {
-	// 	if limit > 0 {
-	// 		if since != "" {
-	// 			rows, _ = db.Query(descSlugSinceLimit, slug, since, limit)
-	// 		} else {
-	// 			rows, _ = db.Query(descSlugLimit, slug, limit)
-	// 		}
+	var rows *pgx.Rows
+	// var query strings.Builder
+	// query.WriteString(sqlSelectUserForum)
+	// if since != "" {
+	// 	if desc {
+	// 		fmt.Fprint(&query, " AND uf.nickname < $2")
 	// 	} else {
-	// 		if since != "" {
-	// 			rows, _ = db.Query(descSlugSince, slug, since)
-	// 		} else {
-	// 			rows, _ = db.Query(descSlug, slug)
-	// 		}
+	// 		fmt.Fprint(&query, " AND uf.nickname > $2 ")
 	// 	}
 	// } else {
-	// 	if limit > 0 {
-	// 		if since != "" {
-	// 			rows, _ = db.Query(ascSlugSinceLimit, slug, since, limit)
-	// 		} else {
-	// 			rows, _ = db.Query(ascSlugLimit, slug, limit)
-	// 		}
-	// 	} else {
-	// 		if since != "" {
-	// 			rows, _ = db.Query(ascSlugSince, slug, since)
-	// 		} else {
-	// 			rows, _ = db.Query(ascSlug, slug)
-	// 		}
-	// 	}
+	// 	fmt.Fprint(&query, " AND $2 = ''")
 	// }
+	// if desc {
+	// 	fmt.Fprint(&query, " ORDER BY uf.nickname DESC")
+	// } else {
+	// 	fmt.Fprint(&query, " ORDER BY uf.nickname ASC")
+	// }
+	// if limit > 0 {
+	// 	fmt.Fprint(&query, " LIMIT $3")
+	// } else {
+	// 	fmt.Fprint(&query, " LIMIT 100000+$3")
+	// }
+	// rows, _ := db.Query(query.String(), slug, since, limit)
+
+	if desc {
+		if limit > 0 {
+			if since != "" {
+				rows, _ = db.Query(descSlugSinceLimit, slug, since, limit)
+			} else {
+				rows, _ = db.Query(descSlugLimit, slug, limit)
+			}
+		} else {
+			if since != "" {
+				rows, _ = db.Query(descSlugSince, slug, since)
+			} else {
+				rows, _ = db.Query(descSlug, slug)
+			}
+		}
+	} else {
+		if limit > 0 {
+			if since != "" {
+				rows, _ = db.Query(ascSlugSinceLimit, slug, since, limit)
+			} else {
+				rows, _ = db.Query(ascSlugLimit, slug, limit)
+			}
+		} else {
+			if since != "" {
+				rows, _ = db.Query(ascSlugSince, slug, since)
+			} else {
+				rows, _ = db.Query(ascSlug, slug)
+			}
+		}
+	}
 
 	users := make(models.UsersArr, 0, limit)
 	for rows.Next() {
