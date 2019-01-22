@@ -898,8 +898,6 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
 									WHERE
-									p.thread_id =$1
-									AND
 									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
 									AND p2.id < (SELECT path[1] FROM posts WHERE id=$2)
 									ORDER BY p2.id DESC
@@ -909,8 +907,6 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
 									WHERE
-									p.thread_id =$1
-									AND
 									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
 									AND p2.id > (SELECT path[1] FROM posts WHERE id=$2)
 									ORDER BY p2.id ASC
@@ -922,8 +918,6 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
 									WHERE
-									p.thread_id =$1
-									AND
 									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
 									ORDER BY p2.id DESC
 									LIMIT $2)
@@ -932,8 +926,6 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
 									WHERE
-									p.thread_id =$1
-									AND
 									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
 									ORDER BY p2.id
 									LIMIT $2)
