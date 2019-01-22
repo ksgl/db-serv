@@ -463,12 +463,12 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 			WHERE slug=$2;`, size, forum)
 
 		var insertParticipants strings.Builder
-		fmt.Fprintf(&insertParticipants, `INSERT INTO participants(nickname,forum_slug) VALUES `)
+		fmt.Fprintf(&insertParticipants, `INSERT INTO participants(nickname,forum_slug,id) VALUES `)
 		for idx, u := range postsResp {
 			if idx == size-1 {
-				fmt.Fprintf(&insertParticipants, `('%s', '%s')`, u.Author, forum)
+				fmt.Fprintf(&insertParticipants, `('%s', '%s',(SELECT id FROM users WHERE users.nickname='%s'))`, u.Author, forum, u.Author)
 			} else {
-				fmt.Fprintf(&insertParticipants, `('%s', '%s'),`, u.Author, forum)
+				fmt.Fprintf(&insertParticipants, `('%s', '%s',(SELECT id FROM users WHERE users.nickname='%s')),`, u.Author, forum, u.Author)
 			}
 		}
 		fmt.Fprintf(&insertParticipants, ` ON CONFLICT DO NOTHING;`)
@@ -789,7 +789,7 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	}
 
 	var rows *pgx.Rows
-	//var err error
+	var err error
 
 	switch sort {
 	case "":
@@ -891,17 +891,23 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	case "parent_tree":
 		if since != 0 {
 			if desc {
-				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
+				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
-									WHERE path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
+									WHERE
+									p.thread_id =$1
+									AND
+									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
 									AND p2.id < (SELECT path[1] FROM posts WHERE id=$2)
 									ORDER BY p2.id DESC
 									LIMIT $3)
 									ORDER BY path[1] DESC, p.path`, id, since, limit)
 			} else {
-				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
+				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
-									WHERE path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
+									WHERE
+									p.thread_id =$1
+									AND
+									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
 									AND p2.id > (SELECT path[1] FROM posts WHERE id=$2)
 									ORDER BY p2.id ASC
 									LIMIT $3)
@@ -909,16 +915,22 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 			}
 		} else {
 			if desc {
-				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
+				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
-									WHERE path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
+									WHERE
+									p.thread_id =$1
+									AND
+									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
 									ORDER BY p2.id DESC
 									LIMIT $2)
 									ORDER BY path[1] DESC, p.path`, id, limit)
 			} else {
-				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
+				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
-									WHERE path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
+									WHERE
+									p.thread_id =$1
+									AND
+									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
 									ORDER BY p2.id
 									LIMIT $2)
 									ORDER BY p.path`, id, limit)
@@ -958,10 +970,11 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	posts := make(models.PostsArr, 0, limit)
 	for rows.Next() {
 		temp := models.Post{Thread: id}
-		rows.Scan(&temp.ID, &temp.Author, &temp.Created, &temp.IsEdited, &temp.Message, &temp.Parent, &temp.Forum)
+		err = rows.Scan(&temp.ID, &temp.Author, &temp.Created, &temp.IsEdited, &temp.Message, &temp.Parent, &temp.Forum)
 		posts = append(posts, &temp)
 
 	}
+	err = err
 	//log.Println(err)
 	rows.Close()
 
