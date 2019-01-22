@@ -27,7 +27,7 @@ DROP TRIGGER IF EXISTS add_participant_via_threads ON threads;
 
 CREATE TABLE IF NOT EXISTS users (
   id       SERIAL         UNIQUE,
-  nickname CITEXT         NOT NULL PRIMARY KEY ,
+  nickname CITEXT         NOT NULL PRIMARY KEY ,
   about    TEXT,
   email    CITEXT         NOT NULL,
   fullname TEXT           NOT NULL
@@ -154,8 +154,4 @@ CREATE TABLE participants (
 
     --CONSTRAINT participants_pkey UNIQUE (forum_slug,nickname) --orderby!
    CONSTRAINT participants_pkey PRIMARY KEY (forum_slug, nickname)
-);
-
---CREATE INDEX idx_participant_forum_slug_nickname ON participants(forum_slug, nickname);
-
-
+)
