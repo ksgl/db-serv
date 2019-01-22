@@ -4,6 +4,7 @@ import (
 	ut "forum/api/utility"
 	"forum/database"
 	"forum/models"
+	"log"
 
 	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
@@ -37,7 +38,7 @@ const (
 			FROM participants AS uf
 			JOIN users AS u ON u.nickname = uf.nickname
 			WHERE uf.forum_slug = $1
-		`
+	`
 
 	descSlugSinceLimit = `SELECT u.nickname,u.about,u.fullname,u.email
 							FROM
@@ -46,8 +47,7 @@ const (
 							WHERE
 							p.forum_slug = $1 AND
 							p.nickname < $2
-							ORDER BY
-							p.nickname DESC
+							ORDER BY p.nickname DESC
 							LIMIT $3;`
 
 	descSlugLimit = `SELECT u.nickname,u.about,u.fullname,u.email
@@ -56,8 +56,7 @@ const (
 						"participants" p ON (u.id = p.id)
 						WHERE
 						p.forum_slug = $1
-						ORDER BY
-						p.nickname DESC
+						ORDER BY p.nickname DESC
 						LIMIT $2;`
 
 	descSlugSince = `SELECT u.nickname,u.about,u.fullname,u.email
@@ -67,8 +66,7 @@ const (
 					WHERE
 					p.forum_slug = $1 AND
 					p.nickname < $2
-					ORDER BY
-					p.nickname DESC;`
+					ORDER BY p.nickname DESC;`
 
 	descSlug = `SELECT u.nickname,u.about,u.fullname,u.email
 				FROM
@@ -76,8 +74,7 @@ const (
 				"participants" p ON (u.id = p.id)
 				WHERE
 				p.forum_slug = $1
-				ORDER BY
-				p.nickname DESC;`
+				ORDER BY p.nickname DESC;`
 
 	ascSlugSinceLimit = `SELECT u.nickname,u.about,u.fullname,u.email
 							FROM
@@ -86,8 +83,7 @@ const (
 							WHERE
 							p.forum_slug = $1 AND
 							p.nickname > $2
-							ORDER BY
-							p.nickname ASC
+							ORDER BY p.nickname ASC
 							LIMIT $3;`
 
 	ascSlugLimit = `SELECT u.nickname,u.about,u.fullname,u.email
@@ -96,8 +92,7 @@ const (
 					"participants" p ON (u.id = p.id)
 					WHERE
 					p.forum_slug = $1
-					ORDER BY
-					p.nickname ASC
+					ORDER BY p.nickname ASC
 					LIMIT $2;`
 
 	ascSlugSince = `SELECT u.nickname,u.about,u.fullname,u.email
@@ -107,8 +102,7 @@ const (
 					WHERE
 					p.forum_slug = $1 AND
 					p.nickname > $2
-					ORDER BY
-					p.nickname ASC;`
+					ORDER BY p.nickname ASC;`
 
 	ascSlug = `SELECT u.nickname,u.about,u.fullname,u.email
 				FROM
@@ -116,8 +110,7 @@ const (
 				"participants" p ON (u.id = p.id)
 				WHERE
 				p.forum_slug = $1
-				ORDER BY
-				p.nickname ASC`
+				ORDER BY p.nickname ASC`
 )
 
 func CreateForum(ctx *fasthttp.RequestCtx) {
@@ -189,8 +182,9 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	var rows *pgx.Rows
+	// var rows *pgx.Rows
 	// var query strings.Builder
+	// var err error
 	// query.WriteString(sqlSelectUserForum)
 	// if since != "" {
 	// 	if desc {
@@ -211,34 +205,60 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 	// } else {
 	// 	fmt.Fprint(&query, " LIMIT 100000+$3")
 	// }
-	// rows, _ := db.Query(query.String(), slug, since, limit)
+	// rows, err = db.Query(query.String(), slug, since, limit)
 
+	var rows *pgx.Rows
+	var err error
 	if desc {
 		if limit > 0 {
 			if since != "" {
-				rows, _ = db.Query(descSlugSinceLimit, slug, since, limit)
+				rows, err = db.Query(descSlugSinceLimit, slug, since, limit)
+				log.Println(descSlugSinceLimit)
+				log.Println(slug)
+				log.Println(since)
+				log.Println(limit)
 			} else {
-				rows, _ = db.Query(descSlugLimit, slug, limit)
+				rows, err = db.Query(descSlugLimit, slug, limit)
+				log.Println(descSlugLimit)
+				log.Println(slug)
+				log.Println(limit)
 			}
 		} else {
 			if since != "" {
-				rows, _ = db.Query(descSlugSince, slug, since)
+				rows, err = db.Query(descSlugSince, slug, since)
+				log.Println(descSlugSince)
+				log.Println(slug)
+				log.Println(since)
 			} else {
-				rows, _ = db.Query(descSlug, slug)
+				rows, err = db.Query(descSlug, slug)
+				log.Println(descSlug)
+				log.Println(slug)
 			}
 		}
 	} else {
 		if limit > 0 {
 			if since != "" {
-				rows, _ = db.Query(ascSlugSinceLimit, slug, since, limit)
+				rows, err = db.Query(ascSlugSinceLimit, slug, since, limit)
+				log.Println(ascSlugSinceLimit)
+				log.Println(slug)
+				log.Println(since)
+				log.Println(limit)
 			} else {
-				rows, _ = db.Query(ascSlugLimit, slug, limit)
+				rows, err = db.Query(ascSlugLimit, slug, limit)
+				log.Println(ascSlugLimit)
+				log.Println(slug)
+				log.Println(limit)
 			}
 		} else {
 			if since != "" {
-				rows, _ = db.Query(ascSlugSince, slug, since)
+				rows, err = db.Query(ascSlugSince, slug, since)
+				log.Println(ascSlugSince)
+				log.Println(slug)
+				log.Println(since)
 			} else {
-				rows, _ = db.Query(ascSlug, slug)
+				rows, err = db.Query(ascSlug, slug)
+				log.Println(ascSlug)
+				log.Println(slug)
 			}
 		}
 	}
@@ -246,10 +266,10 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 	users := make(models.UsersArr, 0, limit)
 	for rows.Next() {
 		user := models.User{}
-		rows.Scan(&user.Nickname, &user.About, &user.Fullname, &user.Email)
+		err = rows.Scan(&user.Nickname, &user.About, &user.Fullname, &user.Email)
 		users = append(users, &user)
 	}
-	//log.Println(err)
+	err = err
 	rows.Close()
 
 	p, _ := users.MarshalJSON()

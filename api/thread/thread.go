@@ -267,6 +267,8 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 	db.Exec(`INSERT INTO participants(nickname,forum_slug)
 				VALUES ($1,$2)
 				ON CONFLICT DO NOTHING;`, t.Author, t.Forum)
+
+	//db.Exec(`UPDATE participants p SET id = (SELECT id FROM users u WHERE u.nickname = p.nickname);`)
 	/* TRIGGERED-END */
 
 	p, _ := t.MarshalJSON()
@@ -463,17 +465,19 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 			WHERE slug=$2;`, size, forum)
 
 		var insertParticipants strings.Builder
-		fmt.Fprintf(&insertParticipants, `INSERT INTO participants(nickname,forum_slug,id) VALUES `)
+		fmt.Fprintf(&insertParticipants, `INSERT INTO participants(nickname,forum_slug) VALUES `)
 		for idx, u := range postsResp {
 			if idx == size-1 {
-				fmt.Fprintf(&insertParticipants, `('%s', '%s',(SELECT id FROM users WHERE users.nickname='%s'))`, u.Author, forum, u.Author)
+				fmt.Fprintf(&insertParticipants, `($%d, $%d)`, u.Author, u.Forum)
 			} else {
-				fmt.Fprintf(&insertParticipants, `('%s', '%s',(SELECT id FROM users WHERE users.nickname='%s')),`, u.Author, forum, u.Author)
+				fmt.Fprintf(&insertParticipants, `($%d, $%d),`, u.Author, u.Forum)
 			}
 		}
 		fmt.Fprintf(&insertParticipants, ` ON CONFLICT DO NOTHING;`)
-
+		//	log.Println(insertParticipants.String())
 		db.Exec(insertParticipants.String())
+
+		//db.Exec(`UPDATE participants p SET id = (SELECT id FROM users u WHERE u.nickname = p.nickname);`)
 		//}()
 
 		p, _ := postsResp.MarshalJSON()
