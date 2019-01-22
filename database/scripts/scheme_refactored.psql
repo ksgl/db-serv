@@ -26,14 +26,13 @@ DROP TRIGGER IF EXISTS add_participant_via_threads ON threads;
 
 
 CREATE TABLE IF NOT EXISTS users (
-  id       SERIAL         ,
-  nickname CITEXT 		    NOT NULL PRIMARY KEY ,
+  id       SERIAL         UNIQUE,
+  nickname CITEXT         NOT NULL PRIMARY KEY ,
   about    TEXT,
   email    CITEXT         NOT NULL,
   fullname TEXT           NOT NULL
 );
 
-CREATE UNIQUE idx_users_id ON users(id);
 CREATE UNIQUE INDEX idx_users_email ON users(email);
 
 CREATE TABLE IF NOT EXISTS forums (
@@ -149,12 +148,14 @@ FOR EACH ROW EXECUTE PROCEDURE update_thread_votes();
 -- participants section
 
 CREATE TABLE participants (
-    id         INT,
+    id         INT references users(id),
     forum_slug CITEXT NOT NULL,
-    nickname   CITEXT NOT NULL
+    nickname   CITEXT NOT NULL,
 
-    CONSTRAINT participants_pkey UNIQUE (forum_slug,nickname) --orderby!
-   --CONSTRAINT participants_pkey PRIMARY KEY (forum_slug, nickname)
+    --CONSTRAINT participants_pkey UNIQUE (forum_slug,nickname) --orderby!
+   CONSTRAINT participants_pkey PRIMARY KEY (forum_slug, nickname)
 );
 
 --CREATE INDEX idx_participant_forum_slug_nickname ON participants(forum_slug, nickname);
+
+

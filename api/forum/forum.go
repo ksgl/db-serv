@@ -4,7 +4,6 @@ import (
 	ut "forum/api/utility"
 	"forum/database"
 	"forum/models"
-	"log"
 
 	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
@@ -208,57 +207,57 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 	// rows, err = db.Query(query.String(), slug, since, limit)
 
 	var rows *pgx.Rows
-	var err error
+	//var err error
 	if desc {
 		if limit > 0 {
 			if since != "" {
-				rows, err = db.Query(descSlugSinceLimit, slug, since, limit)
-				log.Println(descSlugSinceLimit)
-				log.Println(slug)
-				log.Println(since)
-				log.Println(limit)
+				rows, _ = db.Query(descSlugSinceLimit, slug, since, limit)
+				// log.Println(descSlugSinceLimit)
+				// log.Println(slug)
+				// log.Println(since)
+				// log.Println(limit)
 			} else {
-				rows, err = db.Query(descSlugLimit, slug, limit)
-				log.Println(descSlugLimit)
-				log.Println(slug)
-				log.Println(limit)
+				rows, _ = db.Query(descSlugLimit, slug, limit)
+				// log.Println(descSlugLimit)
+				// log.Println(slug)
+				// log.Println(limit)
 			}
 		} else {
 			if since != "" {
-				rows, err = db.Query(descSlugSince, slug, since)
-				log.Println(descSlugSince)
-				log.Println(slug)
-				log.Println(since)
+				rows, _ = db.Query(descSlugSince, slug, since)
+				// log.Println(descSlugSince)
+				// log.Println(slug)
+				// log.Println(since)
 			} else {
-				rows, err = db.Query(descSlug, slug)
-				log.Println(descSlug)
-				log.Println(slug)
+				rows, _ = db.Query(descSlug, slug)
+				// log.Println(descSlug)
+				// log.Println(slug)
 			}
 		}
 	} else {
 		if limit > 0 {
 			if since != "" {
-				rows, err = db.Query(ascSlugSinceLimit, slug, since, limit)
-				log.Println(ascSlugSinceLimit)
-				log.Println(slug)
-				log.Println(since)
-				log.Println(limit)
+				rows, _ = db.Query(ascSlugSinceLimit, slug, since, limit)
+				// log.Println(ascSlugSinceLimit)
+				// log.Println(slug)
+				// log.Println(since)
+				// log.Println(limit)
 			} else {
-				rows, err = db.Query(ascSlugLimit, slug, limit)
-				log.Println(ascSlugLimit)
-				log.Println(slug)
-				log.Println(limit)
+				rows, _ = db.Query(ascSlugLimit, slug, limit)
+				// log.Println(ascSlugLimit)
+				// log.Println(slug)
+				// log.Println(limit)
 			}
 		} else {
 			if since != "" {
-				rows, err = db.Query(ascSlugSince, slug, since)
-				log.Println(ascSlugSince)
-				log.Println(slug)
-				log.Println(since)
+				rows, _ = db.Query(ascSlugSince, slug, since)
+				// log.Println(ascSlugSince)
+				// log.Println(slug)
+				// log.Println(since)
 			} else {
-				rows, err = db.Query(ascSlug, slug)
-				log.Println(ascSlug)
-				log.Println(slug)
+				rows, _ = db.Query(ascSlug, slug)
+				// log.Println(ascSlug)
+				// log.Println(slug)
 			}
 		}
 	}
@@ -266,10 +265,10 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 	users := make(models.UsersArr, 0, limit)
 	for rows.Next() {
 		user := models.User{}
-		err = rows.Scan(&user.Nickname, &user.About, &user.Fullname, &user.Email)
+		rows.Scan(&user.Nickname, &user.About, &user.Fullname, &user.Email)
 		users = append(users, &user)
 	}
-	err = err
+	//err = err
 	rows.Close()
 
 	p, _ := users.MarshalJSON()
