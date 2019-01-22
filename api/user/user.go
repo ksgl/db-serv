@@ -1,10 +1,19 @@
-package api
+package user
 
 import (
+	ut "forum/api/utility"
+	"forum/database"
 	"forum/models"
 
+	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
 )
+
+var db *pgx.ConnPool
+
+func init() {
+	db = database.Connect()
+}
 
 const (
 	createUserInsert = `INSERT INTO users(about,email,fullname,nickname)
@@ -46,14 +55,14 @@ func CreateUser(ctx *fasthttp.RequestCtx) {
 
 		rows.Close()
 		p, _ := users.MarshalJSON()
-		Respond(ctx, fasthttp.StatusConflict, p)
+		ut.Respond(ctx, fasthttp.StatusConflict, p)
 
 		return
 
 	}
 
 	p, _ := u.MarshalJSON()
-	Respond(ctx, fasthttp.StatusCreated, p)
+	ut.Respond(ctx, fasthttp.StatusCreated, p)
 
 	return
 }
@@ -65,19 +74,19 @@ func InfoUser(ctx *fasthttp.RequestCtx) {
 	db.QueryRow(userByNicknameExtendedSelect, u.Nickname).Scan(&u.About, &u.Email, &u.Fullname, &u.Nickname)
 
 	// if err != nil {
-	// 	ErrRespond(ctx, fasthttp.StatusNotFound)
+	// 	 ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 	// 	return
 	// }
 
 	if u.Email == "" {
-		ErrRespond(ctx, fasthttp.StatusNotFound)
+		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		return
 	}
 
 	p, _ := u.MarshalJSON()
-	Respond(ctx, fasthttp.StatusOK, p)
+	ut.Respond(ctx, fasthttp.StatusOK, p)
 
 	return
 }
@@ -91,14 +100,14 @@ func UpdateUser(ctx *fasthttp.RequestCtx) {
 	res, err := db.Exec(updateUsers, u.About, u.Email, u.Fullname, finalUser.Nickname)
 
 	if err != nil {
-		ErrRespond(ctx, fasthttp.StatusConflict)
+		ut.ErrRespond(ctx, fasthttp.StatusConflict)
 
 		return
 
 	}
 
 	if res.RowsAffected() == 0 {
-		ErrRespond(ctx, fasthttp.StatusNotFound)
+		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		return
 	}
@@ -106,7 +115,7 @@ func UpdateUser(ctx *fasthttp.RequestCtx) {
 	db.QueryRow(userByNicknameShortSelect, finalUser.Nickname).Scan(&finalUser.About, &finalUser.Email, &finalUser.Fullname)
 
 	p, _ := finalUser.MarshalJSON()
-	Respond(ctx, fasthttp.StatusOK, p)
+	ut.Respond(ctx, fasthttp.StatusOK, p)
 
 	return
 }

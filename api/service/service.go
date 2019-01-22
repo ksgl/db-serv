@@ -1,15 +1,24 @@
-package api
+package service
 
 import (
+	ut "forum/api/utility"
+	"forum/database"
 	"forum/models"
 
+	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
 )
+
+var db *pgx.ConnPool
+
+func init() {
+	db = database.Connect()
+}
 
 func Clear(ctx *fasthttp.RequestCtx) {
 	db.Exec(`TRUNCATE forums,participants,posts,threads,users,votes;`)
 
-	Respond(ctx, fasthttp.StatusOK, []byte(`[OK]`))
+	ut.Respond(ctx, fasthttp.StatusOK, []byte(`[OK]`))
 
 	return
 }
@@ -25,7 +34,7 @@ func Status(ctx *fasthttp.RequestCtx) {
 					`).Scan(&status.User, &status.Post, &status.Forum, &status.Thread)
 
 	p, _ := status.MarshalJSON()
-	Respond(ctx, fasthttp.StatusOK, p)
+	ut.Respond(ctx, fasthttp.StatusOK, p)
 
 	return
 }

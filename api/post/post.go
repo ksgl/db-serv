@@ -1,14 +1,23 @@
-package api
+package post
 
 import (
+	ut "forum/api/utility"
+	"forum/database"
 	"forum/models"
 	"strconv"
 	"strings"
 
+	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgtype"
 
 	"github.com/valyala/fasthttp"
 )
+
+var db *pgx.ConnPool
+
+func init() {
+	db = database.Connect()
+}
 
 const (
 	postInfoSelect = `SELECT thread_id,message,edited,created,forum_slug,author
@@ -134,13 +143,13 @@ func InfoPost(ctx *fasthttp.RequestCtx) {
 		db.QueryRow(selectPost, id).Scan(&post.Post.Parent, &post.Post.Thread, &post.Post.Message, &post.Post.IsEdited, &post.Post.Created, &post.Post.Forum, &post.Post.Author)
 
 		if post.Post.Author == "" {
-			ErrRespond(ctx, fasthttp.StatusNotFound)
+			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 			return
 		}
 
 		p, _ := post.MarshalJSON()
-		Respond(ctx, fasthttp.StatusOK, p)
+		ut.Respond(ctx, fasthttp.StatusOK, p)
 
 		return
 	} else {
@@ -234,7 +243,7 @@ func InfoPost(ctx *fasthttp.RequestCtx) {
 
 		//log.Println(err)
 		if postRel.Author == "" {
-			ErrRespond(ctx, fasthttp.StatusNotFound)
+			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 			return
 		}
@@ -255,7 +264,7 @@ func InfoPost(ctx *fasthttp.RequestCtx) {
 		}
 
 		p, _ := pr.MarshalJSON()
-		Respond(ctx, fasthttp.StatusOK, p)
+		ut.Respond(ctx, fasthttp.StatusOK, p)
 
 		return
 	}
@@ -272,7 +281,7 @@ func UpdatePost(ctx *fasthttp.RequestCtx) {
 		db.QueryRow(postInfoSelect, id).Scan(&post.Thread, &post.Message, &post.IsEdited, &post.Created, &post.Forum, &post.Author)
 
 		if post.Author == "" {
-			ErrRespond(ctx, fasthttp.StatusNotFound)
+			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 			return
 		}
@@ -280,7 +289,7 @@ func UpdatePost(ctx *fasthttp.RequestCtx) {
 		post.ID = int64(id)
 
 		p, _ := post.MarshalJSON()
-		Respond(ctx, fasthttp.StatusOK, p)
+		ut.Respond(ctx, fasthttp.StatusOK, p)
 
 		return
 	}
@@ -290,13 +299,13 @@ func UpdatePost(ctx *fasthttp.RequestCtx) {
 	db.QueryRow(updatePost, update.Message, id).Scan(&post.Author, &post.Created, &post.Forum, &post.IsEdited, &post.Message, &post.Thread)
 	post.ID = int64(id)
 	if post.Author == "" {
-		ErrRespond(ctx, fasthttp.StatusNotFound)
+		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		return
 	}
 
 	p, _ := post.MarshalJSON()
-	Respond(ctx, fasthttp.StatusOK, p)
+	ut.Respond(ctx, fasthttp.StatusOK, p)
 
 	return
 }

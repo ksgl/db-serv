@@ -1,9 +1,6 @@
-package api
+package utility
 
 import (
-	"forum/database"
-
-	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
 )
 
@@ -14,12 +11,6 @@ import (
 // func New(db *pgx.ConnPool) *Handler {
 // 	return &Handler{db}
 // }
-
-var db *pgx.ConnPool
-
-func init() {
-	db = database.Connect()
-}
 
 func ErrRespond(ctx *fasthttp.RequestCtx, status int) {
 	ctx.SetContentType("application/json")

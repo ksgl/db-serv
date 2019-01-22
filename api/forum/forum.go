@@ -1,11 +1,19 @@
-package api
+package forum
 
 import (
+	ut "forum/api/utility"
+	"forum/database"
 	"forum/models"
 
 	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
 )
+
+var db *pgx.ConnPool
+
+func init() {
+	db = database.Connect()
+}
 
 const (
 	createForumInsert = `INSERT INTO forums(slug,title,"user")
@@ -100,20 +108,20 @@ func CreateForum(ctx *fasthttp.RequestCtx) {
 			db.QueryRow(forumInfoShortSelect, f.Slug).Scan(&f.Slug, &f.Title, &f.User)
 
 			p, _ := f.MarshalJSON()
-			Respond(ctx, fasthttp.StatusConflict, p)
+			ut.Respond(ctx, fasthttp.StatusConflict, p)
 
 			return
 		}
 
 		if err.Error() == "ERROR: null value in column \"user\" violates not-null constraint (SQLSTATE 23502)" {
-			ErrRespond(ctx, fasthttp.StatusNotFound)
+			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 			return
 		}
 	}
 
 	p, _ := f.MarshalJSON()
-	Respond(ctx, fasthttp.StatusCreated, p)
+	ut.Respond(ctx, fasthttp.StatusCreated, p)
 
 	return
 }
@@ -126,13 +134,13 @@ func InfoForum(ctx *fasthttp.RequestCtx) {
 	db.QueryRow(forumInfoExtendedSelect, f.Slug).Scan(&f.Slug, &f.Title, &f.User, &f.Posts, &f.Threads)
 
 	if f.Title == "" {
-		ErrRespond(ctx, fasthttp.StatusNotFound)
+		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		return
 	}
 
 	p, _ := f.MarshalJSON()
-	Respond(ctx, fasthttp.StatusOK, p)
+	ut.Respond(ctx, fasthttp.StatusOK, p)
 
 	return
 }
@@ -147,13 +155,13 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 	db.QueryRow(forumSlugSelect, slug).Scan(&obtainedSlug)
 
 	// if err != nil {
-	// 	ErrRespond(ctx, fasthttp.StatusNotFound)
+	// 	ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 	// 	return
 	// }
 
 	if obtainedSlug == "" {
-		ErrRespond(ctx, fasthttp.StatusNotFound)
+		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		return
 	}
@@ -199,7 +207,7 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 	rows.Close()
 
 	p, _ := users.MarshalJSON()
-	Respond(ctx, fasthttp.StatusOK, p)
+	ut.Respond(ctx, fasthttp.StatusOK, p)
 
 	return
 }

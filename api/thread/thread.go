@@ -1,7 +1,9 @@
-package api
+package thread
 
 import (
 	"fmt"
+	ut "forum/api/utility"
+	"forum/database"
 	"forum/models"
 	"strconv"
 	"strings"
@@ -9,6 +11,12 @@ import (
 	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
 )
+
+var db *pgx.ConnPool
+
+func init() {
+	db = database.Connect()
+}
 
 // const sqlGetPostsFlat = `
 // 	SELECT p.author, p.created, p.forum, p.isedited, p.message, p.parent, p.thread, p.id
@@ -235,17 +243,17 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 			WHERE slug=$1;`, t.Slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
 
 			p, _ := t.MarshalJSON()
-			Respond(ctx, fasthttp.StatusConflict, p)
+			ut.Respond(ctx, fasthttp.StatusConflict, p)
 
 			return
 		}
 		if errStr == "ERROR: null value in column \"author\" violates not-null constraint (SQLSTATE 23502)" {
-			ErrRespond(ctx, fasthttp.StatusNotFound)
+			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 			return
 		}
 		if errStr == "ERROR: null value in column \"forum\" violates not-null constraint (SQLSTATE 23502)" {
-			ErrRespond(ctx, fasthttp.StatusNotFound)
+			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 			return
 		}
@@ -262,7 +270,7 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 	/* TRIGGERED-END */
 
 	p, _ := t.MarshalJSON()
-	Respond(ctx, fasthttp.StatusCreated, p)
+	ut.Respond(ctx, fasthttp.StatusCreated, p)
 
 	return
 }
@@ -281,7 +289,7 @@ func Threads(ctx *fasthttp.RequestCtx) {
 	// }
 
 	if slug == "" {
-		ErrRespond(ctx, fasthttp.StatusNotFound)
+		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		return
 	}
@@ -331,7 +339,7 @@ func Threads(ctx *fasthttp.RequestCtx) {
 	rows.Close()
 
 	p, _ := threads.MarshalJSON()
-	Respond(ctx, fasthttp.StatusOK, p)
+	ut.Respond(ctx, fasthttp.StatusOK, p)
 
 	return
 }
@@ -357,20 +365,20 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 	}
 
 	// if err != nil {
-	// 	ErrRespond(ctx, fasthttp.StatusNotFound)
+	// 	ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 	// 	return
 	// }
 
 	if thid == 0 {
-		ErrRespond(ctx, fasthttp.StatusNotFound)
+		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		return
 	}
 
 	if size == 0 {
 		p, _ := posts.MarshalJSON()
-		Respond(ctx, fasthttp.StatusCreated, p)
+		ut.Respond(ctx, fasthttp.StatusCreated, p)
 
 		return
 	}
@@ -422,12 +430,12 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 		if finalRowsErr := rows.Err(); finalRowsErr != nil {
 			if pgerr, ok := finalRowsErr.(pgx.PgError); ok {
 				if pgerr.ConstraintName == "posts_parent_id_fkey" {
-					ErrRespond(ctx, fasthttp.StatusConflict)
+					ut.ErrRespond(ctx, fasthttp.StatusConflict)
 
 					return
 				}
 				if pgerr.ConstraintName == "posts_author_fkey" {
-					ErrRespond(ctx, fasthttp.StatusNotFound)
+					ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 					return
 				}
@@ -437,12 +445,12 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 		// log.Println(err)
 		// if err != nil {
 		// 	if err.Error() == "ERROR: null value in column \"parent_id\" violates not-null constraint (SQLSTATE 23502)" {
-		// 		ErrRespond(ctx, fasthttp.StatusConflict)
+		// 		ut.ErrRespond(ctx, fasthttp.StatusConflict)
 
 		// 		return
 		// 	}
 		// 	if err.Error() == "ERROR: insert or update on table \"posts\" violates foreign key constraint \"posts_author_fkey\" (SQLSTATE 23503)" {
-		// 		ErrRespond(ctx, fasthttp.StatusNotFound)
+		// 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		// 		return
 		// 	}
@@ -469,7 +477,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 		//}()
 
 		p, _ := postsResp.MarshalJSON()
-		Respond(ctx, fasthttp.StatusCreated, p)
+		ut.Respond(ctx, fasthttp.StatusCreated, p)
 
 		return
 	}
@@ -494,7 +502,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 // 	}
 
 // 	if obtainedID == 0 {
-// 		ErrRespond(ctx, fasthttp.StatusNotFound)
+// 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 // 		return
 // 	}
@@ -506,7 +514,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 
 // 	if size == 0 {
 // 		p, _ := posts.MarshalJSON()
-// 		Respond(ctx, fasthttp.StatusCreated, p)
+// 		 ut.Respond(ctx, fasthttp.StatusCreated, p)
 
 // 		return
 // 	}
@@ -529,12 +537,12 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 // 							WHERE id=$1`, pid).Scan(&tmp.Author, &tmp.Created, &tmp.IsEdited, &tmp.Message, &tmp.Parent, &tmp.Forum, &tmp.Thread)
 
 // 		if err != nil {
-// 			ErrRespond(ctx, fasthttp.StatusConflict)
+// 			ut.ErrRespond(ctx, fasthttp.StatusConflict)
 
 // 			return
 // 		}
 // 		if tmp.Thread != int32(obtainedID) {
-// 			ErrRespond(ctx, fasthttp.StatusConflict)
+// 			ut.ErrRespond(ctx, fasthttp.StatusConflict)
 
 // 			return
 // 		}
@@ -543,7 +551,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 
 // 	uids, ok := UsersCheck(authorsSet)
 // 	if !ok {
-// 		ErrRespond(ctx, fasthttp.StatusNotFound)
+// 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 // 		return
 // 	}
@@ -566,7 +574,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 // 	rows, err := tx.Query(b.String(), a...)
 // 	//log.Println(err)
 // 	if err != nil {
-// 		ErrRespond(ctx, fasthttp.StatusConflict)
+// 		ut.ErrRespond(ctx, fasthttp.StatusConflict)
 
 // 		return
 // 	}
@@ -575,7 +583,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 // 	for _, p := range posts {
 // 		rows.Next()
 // 		if err := rows.Scan(&p.Created, &p.ID); err != nil {
-// 			ErrRespond(ctx, fasthttp.StatusConflict)
+// 			ut.ErrRespond(ctx, fasthttp.StatusConflict)
 
 // 			return
 // 		}
@@ -586,7 +594,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 // 						SET posts=posts+$1
 // 						WHERE slug=$2;`, size, forum); err != nil {
 
-// 		ErrRespond(ctx, fasthttp.StatusConflict)
+// 		ut.ErrRespond(ctx, fasthttp.StatusConflict)
 
 // 		return
 // 	}
@@ -608,7 +616,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 // 	tx.Commit()
 
 // 	p, _ := posts.MarshalJSON()
-// 	Respond(ctx, fasthttp.StatusCreated, p)
+// 	 ut.Respond(ctx, fasthttp.StatusCreated, p)
 
 // 	return
 // }
@@ -692,7 +700,7 @@ func Vote(ctx *fasthttp.RequestCtx) {
 		_, err := db.Exec(insert.String(), vote.Nickname, id, vote.Voice)
 
 		if err != nil {
-			ErrRespond(ctx, fasthttp.StatusNotFound)
+			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 			return
 
@@ -714,7 +722,7 @@ func Vote(ctx *fasthttp.RequestCtx) {
 		_, err := db.Exec(insert.String(), vote.Nickname, slug, vote.Voice)
 
 		if err != nil {
-			ErrRespond(ctx, fasthttp.StatusNotFound)
+			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 			return
 		}
@@ -725,7 +733,7 @@ func Vote(ctx *fasthttp.RequestCtx) {
 	}
 
 	p, _ := t.MarshalJSON()
-	Respond(ctx, fasthttp.StatusOK, p)
+	ut.Respond(ctx, fasthttp.StatusOK, p)
 
 	return
 }
@@ -743,13 +751,13 @@ func ThreadInfo(ctx *fasthttp.RequestCtx) {
 	}
 
 	if t.Author == "" {
-		ErrRespond(ctx, fasthttp.StatusNotFound)
+		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		return
 	}
 
 	p, _ := t.MarshalJSON()
-	Respond(ctx, fasthttp.StatusOK, p)
+	ut.Respond(ctx, fasthttp.StatusOK, p)
 
 	return
 }
@@ -775,7 +783,7 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	}
 
 	if errThr != nil {
-		ErrRespond(ctx, fasthttp.StatusNotFound)
+		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		return
 	}
@@ -958,7 +966,7 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	rows.Close()
 
 	p, _ := posts.MarshalJSON()
-	Respond(ctx, fasthttp.StatusOK, p)
+	ut.Respond(ctx, fasthttp.StatusOK, p)
 
 	return
 }
@@ -982,13 +990,13 @@ func UpdateThread(ctx *fasthttp.RequestCtx) {
 		}
 
 		if err != nil {
-			ErrRespond(ctx, fasthttp.StatusNotFound)
+			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 			return
 		}
 
 		p, _ := t.MarshalJSON()
-		Respond(ctx, fasthttp.StatusOK, p)
+		ut.Respond(ctx, fasthttp.StatusOK, p)
 
 		return
 	}
@@ -1034,13 +1042,13 @@ func UpdateThread(ctx *fasthttp.RequestCtx) {
 	err := db.QueryRow(query.String(), valueArgs...).Scan(&t.Author, &t.Created, &t.Forum, &t.ID, &t.Message, &t.Slug, &t.Title)
 
 	if err != nil {
-		ErrRespond(ctx, fasthttp.StatusNotFound)
+		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		return
 	}
 
 	p, _ := t.MarshalJSON()
-	Respond(ctx, fasthttp.StatusOK, p)
+	ut.Respond(ctx, fasthttp.StatusOK, p)
 
 	return
 }

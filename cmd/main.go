@@ -1,7 +1,12 @@
 package main
 
 import (
-	API "forum/api"
+	//	API "forum/api"
+	"forum/api/forum"
+	"forum/api/post"
+	"forum/api/service"
+	"forum/api/thread"
+	"forum/api/user"
 
 	"github.com/buaazp/fasthttprouter"
 
@@ -24,26 +29,26 @@ import (
 
 func main() {
 	r := fasthttprouter.New()
-	r.POST("/api/user/:nickname/create", API.CreateUser)
-	r.GET("/api/user/:nickname/profile", API.InfoUser)
-	r.POST("/api/user/:nickname/profile", API.UpdateUser)
+	r.POST("/api/user/:nickname/create", user.CreateUser)
+	r.GET("/api/user/:nickname/profile", user.InfoUser)
+	r.POST("/api/user/:nickname/profile", user.UpdateUser)
 
-	r.GET("/api/forum/:slug/details", API.InfoForum)
-	r.GET("/api/forum/:slug/users", API.UsersForum)
+	r.GET("/api/forum/:slug/details", forum.InfoForum)
+	r.GET("/api/forum/:slug/users", forum.UsersForum)
 
-	r.POST("/api/forum/:slug/create", API.CreateThread)
-	r.GET("/api/forum/:slug/threads", API.Threads)
-	r.POST("/api/thread/:slug_or_id/create", API.CreatePosts)
-	r.POST("/api/thread/:slug_or_id/vote", API.Vote)
-	r.GET("/api/thread/:slug_or_id/details", API.ThreadInfo)
-	r.GET("/api/thread/:slug_or_id/posts", API.SortPosts)
-	r.POST("/api/thread/:slug_or_id/details", API.UpdateThread)
+	r.POST("/api/forum/:slug/create", thread.CreateThread)
+	r.GET("/api/forum/:slug/threads", thread.Threads)
+	r.POST("/api/thread/:slug_or_id/create", thread.CreatePosts)
+	r.POST("/api/thread/:slug_or_id/vote", thread.Vote)
+	r.GET("/api/thread/:slug_or_id/details", thread.ThreadInfo)
+	r.GET("/api/thread/:slug_or_id/posts", thread.SortPosts)
+	r.POST("/api/thread/:slug_or_id/details", thread.UpdateThread)
 
-	r.GET("/api/post/:id/details", API.InfoPost)
-	r.POST("/api/post/:id/details", API.UpdatePost)
+	r.GET("/api/post/:id/details", post.InfoPost)
+	r.POST("/api/post/:id/details", post.UpdatePost)
 
-	r.POST("/api/service/clear", API.Clear)
-	r.GET("/api/service/status", API.Status)
+	r.POST("/api/service/clear", service.Clear)
+	r.GET("/api/service/status", service.Status)
 
 	fasthttp.ListenAndServe(":5000", wrapper(r))
 }
@@ -52,7 +57,7 @@ func wrapper(router *fasthttprouter.Router) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		path := string(ctx.Path())
 		if path == "/api/forum/create" {
-			API.CreateForum(ctx)
+			forum.CreateForum(ctx)
 
 			return
 		}
