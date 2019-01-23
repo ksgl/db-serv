@@ -20,6 +20,14 @@ func init() {
 	PSupdateUsers, _ = db.Prepare("updateUsers", updateUsers)
 }
 
+var (
+	PScreateUserInsert             *pgx.PreparedStatement
+	PSuserByNicknameOrEmailSelect  *pgx.PreparedStatement
+	PSuserByNicknameExtendedSelect *pgx.PreparedStatement
+	PSuserByNicknameShortSelect    *pgx.PreparedStatement
+	PSupdateUsers                  *pgx.PreparedStatement
+)
+
 const (
 	createUserInsert = `INSERT INTO users(about,email,fullname,nickname)
 						VALUES($1,$2,$3,$4);`
@@ -39,14 +47,6 @@ const (
 	updateUsers = `UPDATE users
 					SET about=COALESCE($1,about),email=COALESCE($2,email),fullname=COALESCE($3,fullname)
 					WHERE nickname=$4;`
-)
-
-var (
-	PScreateUserInsert             *pgx.PreparedStatement
-	PSuserByNicknameOrEmailSelect  *pgx.PreparedStatement
-	PSuserByNicknameExtendedSelect *pgx.PreparedStatement
-	PSuserByNicknameShortSelect    *pgx.PreparedStatement
-	PSupdateUsers                  *pgx.PreparedStatement
 )
 
 func CreateUser(ctx *fasthttp.RequestCtx) {
