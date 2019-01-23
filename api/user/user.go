@@ -13,6 +13,11 @@ var db *pgx.ConnPool
 
 func init() {
 	db = database.Connect()
+	PScreateUserInsert, _ = db.Prepare("createUserInsert", createUserInsert)
+	PSuserByNicknameOrEmailSelect, _ = db.Prepare("userByNicknameOrEmailSelect", userByNicknameOrEmailSelect)
+	PSuserByNicknameExtendedSelect, _ = db.Prepare("userByNicknameExtendedSelect", userByNicknameExtendedSelect)
+	PSuserByNicknameShortSelect, _ = db.Prepare("userByNicknameShortSelect", userByNicknameShortSelect)
+	PSupdateUsers, _ = db.Prepare("updateUsers", updateUsers)
 }
 
 const (
@@ -36,15 +41,23 @@ const (
 					WHERE nickname=$4;`
 )
 
+var (
+	PScreateUserInsert             *pgx.PreparedStatement
+	PSuserByNicknameOrEmailSelect  *pgx.PreparedStatement
+	PSuserByNicknameExtendedSelect *pgx.PreparedStatement
+	PSuserByNicknameShortSelect    *pgx.PreparedStatement
+	PSupdateUsers                  *pgx.PreparedStatement
+)
+
 func CreateUser(ctx *fasthttp.RequestCtx) {
 	u := &models.User{}
 	u.UnmarshalJSON(ctx.PostBody())
 	u.Nickname = ctx.UserValue("nickname").(string)
 
-	_, err := db.Exec(createUserInsert, u.About, u.Email, u.Fullname, u.Nickname)
+	_, err := db.Exec(PScreateUserInsert.Name, u.About, u.Email, u.Fullname, u.Nickname)
 
 	if err != nil {
-		rows, _ := db.Query(userByNicknameOrEmailSelect, u.Email, u.Nickname)
+		rows, _ := db.Query(PSuserByNicknameOrEmailSelect.Name, u.Email, u.Nickname)
 
 		var users models.UsersArr
 		for rows.Next() {
@@ -71,7 +84,7 @@ func InfoUser(ctx *fasthttp.RequestCtx) {
 	u := &models.User{}
 	u.Nickname = ctx.UserValue("nickname").(string)
 
-	db.QueryRow(userByNicknameExtendedSelect, u.Nickname).Scan(&u.About, &u.Email, &u.Fullname, &u.Nickname)
+	db.QueryRow(PSuserByNicknameExtendedSelect.Name, u.Nickname).Scan(&u.About, &u.Email, &u.Fullname, &u.Nickname)
 
 	if u.Email == "" {
 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
@@ -91,7 +104,7 @@ func UpdateUser(ctx *fasthttp.RequestCtx) {
 	finalUser := &models.User{}
 	finalUser.Nickname = ctx.UserValue("nickname").(string)
 
-	res, err := db.Exec(updateUsers, u.About, u.Email, u.Fullname, finalUser.Nickname)
+	res, err := db.Exec(PSupdateUsers.Name, u.About, u.Email, u.Fullname, finalUser.Nickname)
 
 	if err != nil {
 		ut.ErrRespond(ctx, fasthttp.StatusConflict)
@@ -106,7 +119,7 @@ func UpdateUser(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	db.QueryRow(userByNicknameShortSelect, finalUser.Nickname).Scan(&finalUser.About, &finalUser.Email, &finalUser.Fullname)
+	db.QueryRow(PSuserByNicknameShortSelect.Name, finalUser.Nickname).Scan(&finalUser.About, &finalUser.Email, &finalUser.Fullname)
 
 	p, _ := finalUser.MarshalJSON()
 	ut.Respond(ctx, fasthttp.StatusOK, p)
