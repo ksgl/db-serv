@@ -32,13 +32,6 @@ const (
 						FROM forums
 						WHERE slug=$1;`
 
-	sqlSelectUserForum = `
-			SELECT u.nickname, u.about, u.fullname, u.email
-			FROM participants AS uf
-			JOIN users AS u ON u.nickname = uf.nickname
-			WHERE uf.forum_slug = $1
-	`
-
 	descSlugSinceLimit = `SELECT u.nickname,u.about,u.fullname,u.email
 							FROM
 							"users" u JOIN
