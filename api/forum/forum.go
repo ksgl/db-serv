@@ -132,14 +132,6 @@ const (
 				ORDER BY p.nickname ASC`
 )
 
-const (
-	citext = `SELECT u.nickname,u.about,u.fullname,u.email
-				FROM participants AS p
-				JOIN users AS u
-				ON u.nickname = p.nickname
-				WHERE p.forum_slug = $1`
-)
-
 func CreateForum(ctx *fasthttp.RequestCtx) {
 	f := &models.ForumTrunc{}
 	f.UnmarshalJSON(ctx.PostBody())
@@ -240,37 +232,6 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 		users = append(users, &user)
 	}
 	rows.Close()
-
-	// var query strings.Builder
-	// fmt.Fprint(&query, citext)
-	// if since != "" {
-	// 	if desc {
-	// 		fmt.Fprint(&query, " AND p.nickname < $2")
-	// 	} else {
-	// 		fmt.Fprint(&query, " AND p.nickname > $2 ")
-	// 	}
-	// } else {
-	// 	fmt.Fprint(&query, " AND $2 = ''")
-	// }
-	// if desc {
-	// 	fmt.Fprint(&query, " ORDER BY p.nickname DESC")
-	// } else {
-	// 	fmt.Fprint(&query, " ORDER BY p.nickname ASC")
-	// }
-	// if limit > 0 {
-	// 	fmt.Fprint(&query, " LIMIT $3")
-	// } else {
-	// 	fmt.Fprint(&query, " LIMIT 100000+$3")
-	// }
-	// rows, _ := db.Query(query.String(), obtainedSlug, since, limit)
-
-	// users := make(models.UsersArr, 0, limit)
-	// for rows.Next() {
-	// 	user := models.User{}
-	// 	rows.Scan(&user.Nickname, &user.About, &user.Fullname, &user.Email)
-	// 	users = append(users, &user)
-	// }
-	// rows.Close()
 
 	p, _ := users.MarshalJSON()
 	ut.Respond(ctx, fasthttp.StatusOK, p)
