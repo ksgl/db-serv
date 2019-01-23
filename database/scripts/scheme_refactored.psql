@@ -71,34 +71,10 @@ CREATE TABLE posts (
   thread_id   INT         NOT NULL
 );
 
--- !!!!!!!!!! RELEVANT
-
 CREATE INDEX IF NOT EXISTS index_posts_thread_parent_id ON posts(thread_id, parent_id, id);
 CREATE INDEX IF NOT EXISTS index_posts_thread_id ON posts(thread_id, id) WHERE parent_id IS NULL;;
 CREATE INDEX IF NOT EXISTS index_posts_thread_path ON posts(thread_id, path);
 CREATE INDEX IF NOT EXISTS index_posts_rootparent_path ON posts((path[1]), path);
-
-
--- CREATE OR REPLACE FUNCTION update_path()
--- RETURNS TRIGGER AS '
---   BEGIN
---     IF NEW.parent_id = NULL THEN
---       UPDATE posts
---         SET path = array_append(NEW.path, NEW.id)
---         WHERE id=NEW.id;
---         RETURN NULL;
---     END IF;
---       UPDATE posts
---         SET path = array_append(
---             (SELECT path FROM posts WHERE id=NEW.parent_id), NEW.id)
---         WHERE id=NEW.id;
---         RETURN NULL;
---   END;
--- ' LANGUAGE plpgsql;
-
--- CREATE TRIGGER on_insert_post_update_path
--- AFTER INSERT ON posts
--- FOR EACH ROW EXECUTE PROCEDURE update_path();
 
 CREATE TABLE IF NOT EXISTS votes (
   nickname  CITEXT NOT NULL REFERENCES users(nickname),
@@ -108,7 +84,6 @@ CREATE TABLE IF NOT EXISTS votes (
   PRIMARY KEY (thread_id,nickname)
 );
 
--- +
 CREATE FUNCTION set_thread_votes()
   RETURNS TRIGGER AS '
     BEGIN
@@ -124,7 +99,6 @@ CREATE TRIGGER on_insert_vote
 AFTER INSERT ON votes
 FOR EACH ROW EXECUTE PROCEDURE set_thread_votes();
 
--- +
 CREATE FUNCTION update_thread_votes()
   RETURNS TRIGGER AS '
     BEGIN
@@ -145,13 +119,11 @@ CREATE TRIGGER on_update_vote
 AFTER UPDATE ON votes
 FOR EACH ROW EXECUTE PROCEDURE update_thread_votes();
 
--- participants section
 
 CREATE TABLE participants (
     id         INT references users(id),
     forum_slug CITEXT NOT NULL,
     nickname   CITEXT NOT NULL,
 
-    --CONSTRAINT participants_pkey UNIQUE (forum_slug,nickname) --orderby!
    CONSTRAINT participants_pkey PRIMARY KEY (forum_slug,nickname)
 )
