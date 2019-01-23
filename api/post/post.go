@@ -60,81 +60,73 @@ const (
 )
 
 const (
-	r = `
-	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author
-	FROM posts p
-	WHERE p.id=$1;`
+	r = `SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author
+		FROM posts p
+		WHERE p.id=$1;`
 
-	rUTF = `
-	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	rUTF = `SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			u.nickname,u.about,u.fullname,u.email,
 			t.author,t.created,t.votes,t.id,t.title,t.message,COALESCE(t.slug,''),t.forum,
 			f.slug,f.threads,f.title,f.posts,f."user"
-	FROM posts p
-	LEFT JOIN users AS u
-		ON u.nickname=p.author
-	LEFT JOIN threads AS t
-		ON t.id=p.thread_id
-	LEFT JOIN forums AS f
-		ON f.slug=p.forum_slug
-	WHERE p.id=$1;`
+			FROM posts p
+			LEFT JOIN users AS u
+				ON u.nickname=p.author
+			LEFT JOIN threads AS t
+				ON t.id=p.thread_id
+			LEFT JOIN forums AS f
+				ON f.slug=p.forum_slug
+			WHERE p.id=$1;`
 
-	rUT = `
-	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	rUT = `SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			u.nickname,u.about,u.fullname,u.email,
 			t.author,t.created,t.votes,t.id,t.title,t.message,COALESCE(t.slug,''),t.forum
-	FROM posts p
-	LEFT JOIN users AS u
-		ON u.nickname=p.author
-	LEFT JOIN threads AS t
-		ON t.id=p.thread_id
-	WHERE p.id=$1;`
+			FROM posts p
+			LEFT JOIN users AS u
+				ON u.nickname=p.author
+			LEFT JOIN threads AS t
+				ON t.id=p.thread_id
+			WHERE p.id=$1;`
 
-	rUF = `
-	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	rUF = `SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			u.nickname,u.about,u.fullname,u.email,
 			f.slug,f.threads,f.title,f.posts,f."user"
-	FROM posts p
-	LEFT JOIN users AS u
-		ON u.nickname=p.author
-	LEFT JOIN forums AS f
-		ON f.slug=p.forum_slug
-	WHERE p.id=$1;`
+			FROM posts p
+			LEFT JOIN users AS u
+				ON u.nickname=p.author
+			LEFT JOIN forums AS f
+				ON f.slug=p.forum_slug
+			WHERE p.id=$1;`
 
-	rU = `
-	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	rU = `SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			u.nickname,u.about,u.fullname,u.email
-	FROM posts p
-	LEFT JOIN users AS u
-		ON u.nickname=p.author
-	WHERE p.id=$1;`
+			FROM posts p
+			LEFT JOIN users AS u
+				ON u.nickname=p.author
+			WHERE p.id=$1;`
 
-	rT = `
-	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	rT = `SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			t.author,t.created,t.votes,t.id,t.title,t.message,COALESCE(t.slug,''),t.forum
-	FROM posts p
-	LEFT JOIN threads AS t
-		ON t.id=p.thread_id
-	WHERE p.id=$1;`
+			FROM posts p
+			LEFT JOIN threads AS t
+				ON t.id=p.thread_id
+			WHERE p.id=$1;`
 
-	rTF = `
-	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	rTF = `SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			t.author,t.created,t.votes,t.id,t.title,t.message,COALESCE(t.slug,''),t.forum,
 			f.slug,f.threads,f.title,f.posts,f."user"
-	FROM posts p
-	LEFT JOIN threads AS t
-		ON t.id=p.thread_id
-	LEFT JOIN forums AS f
-		ON f.slug=p.forum_slug
-	WHERE p.id=$1;`
+			FROM posts p
+			LEFT JOIN threads AS t
+				ON t.id=p.thread_id
+			LEFT JOIN forums AS f
+				ON f.slug=p.forum_slug
+			WHERE p.id=$1;`
 
-	rF = `
-	SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
+	rF = `SELECT COALESCE(p.parent_id,0),p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,
 			f.slug,f.threads,f.title,f.posts,f."user"
-	FROM posts p
-	LEFT JOIN forums AS f
-		ON f.slug=p.forum_slug
-	WHERE p.id=$1;`
+			FROM posts p
+			LEFT JOIN forums AS f
+				ON f.slug=p.forum_slug
+			WHERE p.id=$1;`
 )
 
 func InfoPost(ctx *fasthttp.RequestCtx) {
