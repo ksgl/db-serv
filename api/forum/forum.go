@@ -13,7 +13,34 @@ var db *pgx.ConnPool
 
 func init() {
 	db = database.Connect()
+	PScreateForumInsert, _ = db.Prepare("createForumInsert", createForumInsert)
+	PSforumInfoShortSelect, _ = db.Prepare("forumInfoShortSelect", forumInfoShortSelect)
+	PSforumInfoExtendedSelect, _ = db.Prepare("forumInfoExtendedSelect", forumInfoExtendedSelect)
+	PSforumSlugSelect, _ = db.Prepare("forumSlugSelect", forumSlugSelect)
+	PSdescSlugSinceLimit, _ = db.Prepare("descSlugSinceLimit", descSlugSinceLimit)
+	PSdescSlugLimit, _ = db.Prepare("descSlugLimit", descSlugLimit)
+	PSdescSlugSince, _ = db.Prepare("descSlugSince", descSlugSince)
+	PSdescSlug, _ = db.Prepare("descSlug", descSlug)
+	PSascSlugSinceLimit, _ = db.Prepare("ascSlugSinceLimit", ascSlugSinceLimit)
+	PSascSlugLimit, _ = db.Prepare("ascSlugLimit", ascSlugLimit)
+	PSascSlugSince, _ = db.Prepare("ascSlugSince", ascSlugSince)
+	PSascSlug, _ = db.Prepare("ascSlug", ascSlug)
 }
+
+var (
+	PScreateForumInsert       *pgx.PreparedStatement
+	PSforumInfoShortSelect    *pgx.PreparedStatement
+	PSforumInfoExtendedSelect *pgx.PreparedStatement
+	PSforumSlugSelect         *pgx.PreparedStatement
+	PSdescSlugSinceLimit      *pgx.PreparedStatement
+	PSdescSlugLimit           *pgx.PreparedStatement
+	PSdescSlugSince           *pgx.PreparedStatement
+	PSdescSlug                *pgx.PreparedStatement
+	PSascSlugSinceLimit       *pgx.PreparedStatement
+	PSascSlugLimit            *pgx.PreparedStatement
+	PSascSlugSince            *pgx.PreparedStatement
+	PSascSlug                 *pgx.PreparedStatement
+)
 
 const (
 	createForumInsert = `INSERT INTO forums(slug,title,"user")
@@ -109,11 +136,11 @@ func CreateForum(ctx *fasthttp.RequestCtx) {
 	f := &models.ForumTrunc{}
 	f.UnmarshalJSON(ctx.PostBody())
 
-	err := db.QueryRow(createForumInsert, f.Slug, f.Title, f.User).Scan(&f.Slug, &f.Title, &f.User)
+	err := db.QueryRow(PScreateForumInsert.Name, f.Slug, f.Title, f.User).Scan(&f.Slug, &f.Title, &f.User)
 
 	if err != nil {
 		if err.Error() == "ERROR: duplicate key value violates unique constraint \"forums_pkey\" (SQLSTATE 23505)" {
-			db.QueryRow(forumInfoShortSelect, f.Slug).Scan(&f.Slug, &f.Title, &f.User)
+			db.QueryRow(PSforumInfoShortSelect.Name, f.Slug).Scan(&f.Slug, &f.Title, &f.User)
 
 			p, _ := f.MarshalJSON()
 			ut.Respond(ctx, fasthttp.StatusConflict, p)
@@ -138,7 +165,7 @@ func InfoForum(ctx *fasthttp.RequestCtx) {
 	f := models.Forum{}
 	f.Slug = ctx.UserValue("slug").(string)
 
-	db.QueryRow(forumInfoExtendedSelect, f.Slug).Scan(&f.Slug, &f.Title, &f.User, &f.Posts, &f.Threads)
+	db.QueryRow(PSforumInfoExtendedSelect.Name, f.Slug).Scan(&f.Slug, &f.Title, &f.User, &f.Posts, &f.Threads)
 
 	if f.Title == "" {
 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
@@ -159,7 +186,7 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 	since := string(ctx.QueryArgs().Peek("since"))
 
 	obtainedSlug := ""
-	db.QueryRow(forumSlugSelect, slug).Scan(&obtainedSlug)
+	db.QueryRow(PSforumSlugSelect.Name, slug).Scan(&obtainedSlug)
 
 	if obtainedSlug == "" {
 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
@@ -171,29 +198,29 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 	if desc {
 		if limit > 0 {
 			if since != "" {
-				rows, _ = db.Query(descSlugSinceLimit, slug, since, limit)
+				rows, _ = db.Query(PSdescSlugSinceLimit.Name, slug, since, limit)
 			} else {
-				rows, _ = db.Query(descSlugLimit, slug, limit)
+				rows, _ = db.Query(PSdescSlugLimit.Name, slug, limit)
 			}
 		} else {
 			if since != "" {
-				rows, _ = db.Query(descSlugSince, slug, since)
+				rows, _ = db.Query(PSdescSlugSince.Name, slug, since)
 			} else {
-				rows, _ = db.Query(descSlug, slug)
+				rows, _ = db.Query(PSdescSlug.Name, slug)
 			}
 		}
 	} else {
 		if limit > 0 {
 			if since != "" {
-				rows, _ = db.Query(ascSlugSinceLimit, slug, since, limit)
+				rows, _ = db.Query(PSascSlugSinceLimit.Name, slug, since, limit)
 			} else {
-				rows, _ = db.Query(ascSlugLimit, slug, limit)
+				rows, _ = db.Query(PSascSlugLimit.Name, slug, limit)
 			}
 		} else {
 			if since != "" {
-				rows, _ = db.Query(ascSlugSince, slug, since)
+				rows, _ = db.Query(PSascSlugSince.Name, slug, since)
 			} else {
-				rows, _ = db.Query(ascSlug, slug)
+				rows, _ = db.Query(PSascSlug.Name, slug)
 			}
 		}
 	}
