@@ -1,7 +1,7 @@
 SET SYNCHRONOUS_COMMIT = 'off';
 CREATE EXTENSION IF NOT EXISTS CITEXT;
 
--- cleanup
+-------------------------------------- cleanup
 
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS forums CASCADE;
@@ -9,23 +9,16 @@ DROP TABLE IF EXISTS threads CASCADE;
 DROP TABLE IF EXISTS votes CASCADE;
 DROP TABLE IF EXISTS posts CASCADE;
 DROP TABLE IF EXISTS participants CASCADE;
-DROP FUNCTION IF EXISTS update_path();
+
 DROP FUNCTION IF EXISTS set_thread_votes();
 DROP FUNCTION IF EXISTS update_thread_votes();
-DROP FUNCTION IF EXISTS increment_posts();
-DROP FUNCTION IF EXISTS increment_threads();
-DROP FUNCTION IF EXISTS add_forum_participant_via_posts();
-DROP FUNCTION IF EXISTS add_forum_participant_via_threads();
-DROP TRIGGER IF EXISTS on_insert_post_update_path ON posts;
+
 DROP TRIGGER IF EXISTS on_insert_vote ON votes;
 DROP TRIGGER IF EXISTS on_update_vote ON votes;
-DROP TRIGGER IF EXISTS increment_forum_threads ON threads;
-DROP TRIGGER IF EXISTS increment_forum_posts ON posts;
-DROP TRIGGER IF EXISTS add_participant_via_posts ON posts;
-DROP TRIGGER IF EXISTS add_participant_via_threads ON threads;
 
+-------------------------------------- users
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
   id       SERIAL         UNIQUE,
   nickname CITEXT         NOT NULL PRIMARY KEY,
   about    TEXT,
@@ -35,7 +28,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE UNIQUE INDEX idx_users_email ON users(email);
 
-CREATE TABLE IF NOT EXISTS forums (
+-------------------------------------- forums
+
+CREATE TABLE forums (
   slug    CITEXT    NOT NULL PRIMARY KEY,
   posts   INT       NOT NULL DEFAULT 0,
   threads INT       NOT NULL DEFAULT 0,
@@ -45,7 +40,9 @@ CREATE TABLE IF NOT EXISTS forums (
 
 CREATE INDEX idx_forums_user ON forums("user");
 
-CREATE TABLE IF NOT EXISTS threads (
+-------------------------------------- threads
+
+CREATE TABLE threads (
   id        SERIAL      PRIMARY KEY,
   author    CITEXT      NOT NULL REFERENCES users(nickname),
   created   TIMESTAMPTZ DEFAULT now(),
@@ -56,8 +53,10 @@ CREATE TABLE IF NOT EXISTS threads (
   votes     INT         NOT NULL DEFAULT 0
 );
 
-CREATE UNIQUE INDEX idx_threads_slug ON threads(slug);
-CREATE INDEX idx_threads_forum_created ON threads(forum,created);
+CREATE UNIQUE INDEX idx_threads_slug          ON threads(slug);
+CREATE INDEX        idx_threads_forum_created ON threads(forum,created);
+
+-------------------------------------- posts
 
 CREATE TABLE posts (
   id          SERIAL      PRIMARY KEY,
@@ -66,17 +65,19 @@ CREATE TABLE posts (
   created     TIMESTAMPTZ DEFAULT now(),
   edited      BOOLEAN     DEFAULT FALSE,
   message     TEXT,
-  parent_id   INT REFERENCES posts(id),
+  parent_id   INT         REFERENCES posts(id),
   forum_slug  CITEXT      NOT NULL,
   thread_id   INT         NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS index_posts_thread_parent_id ON posts(thread_id, parent_id, id);
-CREATE INDEX IF NOT EXISTS index_posts_thread_id ON posts(thread_id, id) WHERE parent_id IS NULL;;
-CREATE INDEX IF NOT EXISTS index_posts_thread_path ON posts(thread_id, path);
-CREATE INDEX IF NOT EXISTS index_posts_rootparent_path ON posts((path[1]), path);
+CREATE INDEX idx_posts_threadid_parentid_id   ON posts(thread_id, parent_id, id);
+CREATE INDEX idx_posts_threadid_id            ON posts(thread_id, id) WHERE parent_id IS NULL;;
+CREATE INDEX idx_posts_threadid_path          ON posts(thread_id, path);
+CREATE INDEX idx_posts_root_path              ON posts((path[1]), path);
 
-CREATE TABLE IF NOT EXISTS votes (
+-------------------------------------- votes
+
+CREATE TABLE votes (
   nickname  CITEXT NOT NULL REFERENCES users(nickname),
   thread_id INT    NOT NULL REFERENCES threads(id),
   voice     INT    NOT NULL,
@@ -103,10 +104,10 @@ CREATE FUNCTION update_thread_votes()
   RETURNS TRIGGER AS '
     BEGIN
       IF OLD.voice=NEW.voice THEN
-        RETURN NULL;
+      RETURN NULL;
       END IF;
       UPDATE threads
-      SET votes=votes+ CASE
+      SET votes=votes + CASE
                         WHEN NEW.voice = -1 THEN -2
                         ELSE 2
                         END
@@ -119,6 +120,7 @@ CREATE TRIGGER on_update_vote
 AFTER UPDATE ON votes
 FOR EACH ROW EXECUTE PROCEDURE update_thread_votes();
 
+-------------------------------------- participants
 
 CREATE TABLE participants (
     id         INT references users(id),
