@@ -16,7 +16,79 @@ var db *pgx.ConnPool
 
 func init() {
 	db = database.Connect()
+
+	PSFlatLimitByID, _ = db.Prepare("FlatLimitByID", FlatLimitByID)
+	PSFlatLimitDescByID, _ = db.Prepare("FlatLimitDescByID", FlatLimitDescByID)
+	PSFlatLimitSinceByID, _ = db.Prepare("FlatLimitSinceByID", FlatLimitSinceByID)
+	PSFlatLimitSinceDescByID, _ = db.Prepare("FlatLimitSinceDescByID", FlatLimitSinceDescByID)
+	PStree1, _ = db.Prepare("tree1", tree1)
+	PStree2, _ = db.Prepare("tree2", tree2)
+	PStree3, _ = db.Prepare("tree3", tree3)
+	PStree4, _ = db.Prepare("tree4", tree4)
+	PSptree1, _ = db.Prepare("ptree1", ptree1)
+	PSptree2, _ = db.Prepare("ptree2", ptree2)
+	PSptree3, _ = db.Prepare("ptree3", ptree3)
+	PSptree4, _ = db.Prepare("ptree4", ptree4)
+	PSselDescLimitSince, _ = db.Prepare("selDescLimitSince", selDescLimitSince)
+	PSselDescLimit, _ = db.Prepare("selDescLimit", selDescLimit)
+	PSselDescSince, _ = db.Prepare("selDescSince", selDescSince)
+	PSselDesc, _ = db.Prepare("selDesc", selDesc)
+	PSselAscLimitSince, _ = db.Prepare("selAscLimitSince", selAscLimitSince)
+	PSselAscLimit, _ = db.Prepare("selAscLimit", selAscLimit)
+	PSselAscSince, _ = db.Prepare("selAscSince", selAscSince)
+	PSselAsc, _ = db.Prepare("selAsc", selAsc)
+	PSselectThreadId, _ = db.Prepare("selectThreadId", selectThreadId)
+	PSselectThreadSlug, _ = db.Prepare("selectThreadSlug", selectThreadSlug)
+	PSinsertThreadsSlug, _ = db.Prepare("insertThreadsSlug", insertThreadsSlug)
+	PSinsertThreads, _ = db.Prepare("insertThreads", insertThreads)
+	PSupdateForums, _ = db.Prepare("updateForums", updateForums)
+	PSinsertParticipants, _ = db.Prepare("insertParticipants", insertParticipants)
+	PSforumsBySlugSelect, _ = db.Prepare("forumsBySlugSelect", forumsBySlugSelect)
+	PSthreadsInfoShortSelectBySlug, _ = db.Prepare("threadsInfoShortSelectBySlug", threadsInfoShortSelectBySlug)
+	PSthreadsInfoShortSelectByID, _ = db.Prepare("threadsInfoShortSelectByID", threadsInfoShortSelectByID)
+	PSupdForumsWithPosts, _ = db.Prepare("updForumsWithPosts", updForumsWithPosts)
+	PSthrIDSelByID, _ = db.Prepare("thrIDSelByID", thrIDSelByID)
+	PSthrIDSelBySlug, _ = db.Prepare("thrIDSelBySlug", thrIDSelBySlug)
+	PSvoteInsert1, _ = db.Prepare("voteInsert1", voteInsert1)
+	PSvoteInsert2, _ = db.Prepare("voteInsert2", voteInsert2)
 }
+
+var (
+	PSFlatLimitByID                *pgx.PreparedStatement
+	PSFlatLimitDescByID            *pgx.PreparedStatement
+	PSFlatLimitSinceByID           *pgx.PreparedStatement
+	PSFlatLimitSinceDescByID       *pgx.PreparedStatement
+	PStree1                        *pgx.PreparedStatement
+	PStree2                        *pgx.PreparedStatement
+	PStree3                        *pgx.PreparedStatement
+	PStree4                        *pgx.PreparedStatement
+	PSptree1                       *pgx.PreparedStatement
+	PSptree2                       *pgx.PreparedStatement
+	PSptree3                       *pgx.PreparedStatement
+	PSptree4                       *pgx.PreparedStatement
+	PSselDescLimitSince            *pgx.PreparedStatement
+	PSselDescLimit                 *pgx.PreparedStatement
+	PSselDescSince                 *pgx.PreparedStatement
+	PSselDesc                      *pgx.PreparedStatement
+	PSselAscLimitSince             *pgx.PreparedStatement
+	PSselAscLimit                  *pgx.PreparedStatement
+	PSselAscSince                  *pgx.PreparedStatement
+	PSselAsc                       *pgx.PreparedStatement
+	PSselectThreadId               *pgx.PreparedStatement
+	PSselectThreadSlug             *pgx.PreparedStatement
+	PSinsertThreadsSlug            *pgx.PreparedStatement
+	PSinsertThreads                *pgx.PreparedStatement
+	PSupdateForums                 *pgx.PreparedStatement
+	PSinsertParticipants           *pgx.PreparedStatement
+	PSforumsBySlugSelect           *pgx.PreparedStatement
+	PSthreadsInfoShortSelectBySlug *pgx.PreparedStatement
+	PSthreadsInfoShortSelectByID   *pgx.PreparedStatement
+	PSupdForumsWithPosts           *pgx.PreparedStatement
+	PSthrIDSelByID                 *pgx.PreparedStatement
+	PSthrIDSelBySlug               *pgx.PreparedStatement
+	PSvoteInsert1                  *pgx.PreparedStatement
+	PSvoteInsert2                  *pgx.PreparedStatement
+)
 
 const (
 	FlatLimitByID = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
@@ -171,21 +243,17 @@ const (
 								$4,$5)
 						RETURNING id,author,created,forum,message,title;`
 
-	threadsInfoExtendedSelect = `SELECT id,author,created,forum,message,slug,title,votes
-								FROM threads
-								WHERE slug=$1;`
-
 	updateForums = `UPDATE forums
 					SET threads=threads+1
 					WHERE slug=$1;`
 
 	insertParticipants = `INSERT INTO participants(nickname,forum_slug,id)
-					VALUES ($1,$2,(SELECT id FROM users WHERE nickname=$1))
-					ON CONFLICT DO NOTHING;`
+							VALUES ($1,$2,(SELECT id FROM users WHERE nickname=$1))
+							ON CONFLICT DO NOTHING;`
 
 	forumsBySlugSelect = `SELECT slug
-					FROM forums
-					WHERE slug=$1;`
+							FROM forums
+							WHERE slug=$1;`
 
 	threadsInfoShortSelectBySlug = `SELECT id,forum
 									FROM threads
@@ -194,14 +262,6 @@ const (
 	threadsInfoShortSelectByID = `SELECT id,forum
 									FROM threads
 									WHERE id=$1;`
-
-	updThrSel1 = `SELECT author,created,forum,id,message,slug,title
-					FROM threads
-					WHERE id=$1;`
-
-	updThrSel2 = `SELECT author,created,forum,id,message,slug,title
-					FROM threads
-					WHERE slug=$1;`
 
 	updForumsWithPosts = `UPDATE forums
 					SET posts=posts+$1
@@ -233,11 +293,11 @@ const (
 				  AND votes.nickname=$1;`
 )
 
-func slid(ctx *fasthttp.RequestCtx) (string, int) {
+func slid(ctx *fasthttp.RequestCtx) (string, int32) {
 	slug := ctx.UserValue("slug_or_id").(string)
 	id, _ := strconv.ParseInt(slug, 10, 32)
 
-	return slug, int(id)
+	return slug, int32(id)
 }
 
 func CreateThread(ctx *fasthttp.RequestCtx) {
@@ -251,15 +311,15 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 
 	var err error
 	if t.Slug != "" {
-		err = db.QueryRow(insertThreadsSlug, t.Author, t.Created, t.Forum, t.Message, t.Title, t.Slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Title, &t.Slug)
+		err = db.QueryRow(PSinsertThreadsSlug.Name, t.Author, t.Created, t.Forum, t.Message, t.Title, t.Slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Title, &t.Slug)
 	} else {
-		err = db.QueryRow(insertThreads, t.Author, t.Created, t.Forum, t.Message, t.Title).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Title)
+		err = db.QueryRow(PSinsertThreads.Name, t.Author, t.Created, t.Forum, t.Message, t.Title).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Title)
 	}
 
 	if err != nil {
 		errStr := err.Error()
 		if errStr == "ERROR: duplicate key value violates unique constraint \"idx_threads_slug\" (SQLSTATE 23505)" {
-			err = db.QueryRow(threadsInfoExtendedSelect, t.Slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
+			err = db.QueryRow(PSselectThreadSlug.Name, t.Slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
 
 			p, _ := t.MarshalJSON()
 			ut.Respond(ctx, fasthttp.StatusConflict, p)
@@ -279,9 +339,9 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 	}
 
 	/* TRIGGERED-BEGIN */
-	db.Exec(updateForums, t.Forum)
+	db.Exec(PSupdateForums.Name, t.Forum)
 
-	db.Exec(insertParticipants, t.Author, t.Forum)
+	db.Exec(PSinsertParticipants.Name, t.Author, t.Forum)
 
 	/* TRIGGERED-END */
 
@@ -294,7 +354,7 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 func Threads(ctx *fasthttp.RequestCtx) {
 	slugFromURL := ctx.UserValue("slug").(string)
 	slug := ""
-	db.QueryRow(forumsBySlugSelect, slugFromURL).Scan(&slug)
+	db.QueryRow(PSforumsBySlugSelect.Name, slugFromURL).Scan(&slug)
 
 	if slug == "" {
 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
@@ -311,29 +371,29 @@ func Threads(ctx *fasthttp.RequestCtx) {
 	if desc {
 		if limit > 0 {
 			if since != "" {
-				rows, _ = db.Query(selDescLimitSince, slug, since, limit)
+				rows, _ = db.Query(PSselDescLimitSince.Name, slug, since, limit)
 			} else if since == "" {
-				rows, _ = db.Query(selDescLimit, slug, limit)
+				rows, _ = db.Query(PSselDescLimit.Name, slug, limit)
 			}
 		} else {
 			if since != "" {
-				rows, _ = db.Query(selDescSince, slug, since)
+				rows, _ = db.Query(PSselDescSince.Name, slug, since)
 			} else {
-				rows, _ = db.Query(selDesc, slug)
+				rows, _ = db.Query(PSselDesc.Name, slug)
 			}
 		}
 	} else {
 		if limit > 0 {
 			if since != "" {
-				rows, _ = db.Query(selAscLimitSince, slug, since, limit)
+				rows, _ = db.Query(PSselAscLimitSince.Name, slug, since, limit)
 			} else {
-				rows, _ = db.Query(selAscLimit, slug, limit)
+				rows, _ = db.Query(PSselAscLimit.Name, slug, limit)
 			}
 		} else {
 			if since != "" {
-				rows, _ = db.Query(selAscSince, slug, since)
+				rows, _ = db.Query(PSselAscSince.Name, slug, since)
 			} else {
-				rows, _ = db.Query(selAsc, slug)
+				rows, _ = db.Query(PSselAsc.Name, slug)
 			}
 		}
 	}
@@ -363,9 +423,9 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 	size := len(posts)
 
 	if id != 0 {
-		db.QueryRow(threadsInfoShortSelectByID, id).Scan(&thid, &forum)
+		db.QueryRow(PSthreadsInfoShortSelectByID.Name, id).Scan(&thid, &forum)
 	} else {
-		db.QueryRow(threadsInfoShortSelectBySlug, slug).Scan(&thid, &forum)
+		db.QueryRow(PSthreadsInfoShortSelectBySlug.Name, slug).Scan(&thid, &forum)
 	}
 
 	if thid == 0 {
@@ -444,7 +504,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 
 		/* TRIGGERED-BEGIN */
 		//go func() {
-		db.Exec(updForumsWithPosts, size, forum)
+		db.Exec(PSupdForumsWithPosts.Name, size, forum)
 
 		var insertParticipants strings.Builder
 		fmt.Fprintf(&insertParticipants, `INSERT INTO participants(nickname,forum_slug,id) VALUES `)
@@ -520,11 +580,11 @@ func ThreadInfo(ctx *fasthttp.RequestCtx) {
 	t := &models.Thread{}
 
 	if id != 0 {
-		t.ID = int32(id)
-		db.QueryRow(selectThreadId, id).Scan(&t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
+		t.ID = id
+		db.QueryRow(PSselectThreadId.Name, id).Scan(&t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
 
 	} else {
-		db.QueryRow(selectThreadSlug, slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
+		db.QueryRow(PSselectThreadSlug.Name, slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
 	}
 
 	if t.Author == "" {
@@ -550,9 +610,9 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	var id int32
 	var errThr error
 	if idFromURL != 0 {
-		errThr = db.QueryRow(thrIDSelByID, idFromURL).Scan(&id)
+		errThr = db.QueryRow(PSthrIDSelByID.Name, idFromURL).Scan(&id)
 	} else {
-		errThr = db.QueryRow(thrIDSelBySlug, slug).Scan(&id)
+		errThr = db.QueryRow(PSthrIDSelBySlug.Name, slug).Scan(&id)
 	}
 
 	if errThr != nil {
@@ -569,45 +629,45 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	case "flat":
 		if since != 0 {
 			if desc {
-				rows, _ = db.Query(FlatLimitSinceDescByID, id,
+				rows, _ = db.Query(PSFlatLimitSinceDescByID.Name, id,
 					since, limit)
 			} else {
-				rows, _ = db.Query(FlatLimitSinceByID, id,
+				rows, _ = db.Query(PSFlatLimitSinceByID.Name, id,
 					since, limit)
 			}
 		} else {
 			if desc {
-				rows, _ = db.Query(FlatLimitDescByID, id, limit)
+				rows, _ = db.Query(PSFlatLimitDescByID.Name, id, limit)
 			} else {
-				rows, _ = db.Query(FlatLimitByID, id, limit)
+				rows, _ = db.Query(PSFlatLimitByID.Name, id, limit)
 			}
 		}
 	case "tree":
 		if since != 0 {
 			if desc {
-				rows, _ = db.Query(tree1, id, since, limit)
+				rows, _ = db.Query(PStree1.Name, id, since, limit)
 			} else {
-				rows, _ = db.Query(tree2, id, since, limit)
+				rows, _ = db.Query(PStree2.Name, id, since, limit)
 			}
 		} else {
 			if desc {
-				rows, _ = db.Query(tree3, id, limit)
+				rows, _ = db.Query(PStree3.Name, id, limit)
 			} else {
-				rows, _ = db.Query(tree4, id, limit)
+				rows, _ = db.Query(PStree4.Name, id, limit)
 			}
 		}
 	case "parent_tree":
 		if since != 0 {
 			if desc {
-				rows, _ = db.Query(ptree1, id, since, limit)
+				rows, _ = db.Query(PSptree1.Name, id, since, limit)
 			} else {
-				rows, _ = db.Query(ptree2, id, since, limit)
+				rows, _ = db.Query(PSptree2.Name, id, since, limit)
 			}
 		} else {
 			if desc {
-				rows, _ = db.Query(ptree3, id, limit)
+				rows, _ = db.Query(PSptree3.Name, id, limit)
 			} else {
-				rows, _ = db.Query(ptree4, id, limit)
+				rows, _ = db.Query(PSptree4.Name, id, limit)
 			}
 		}
 	}
@@ -636,9 +696,10 @@ func UpdateThread(ctx *fasthttp.RequestCtx) {
 	if update.Message == "" && update.Title == "" {
 		var err error
 		if id != 0 {
-			err = db.QueryRow(updThrSel1, id).Scan(&t.Author, &t.Created, &t.Forum, &t.ID, &t.Message, &t.Slug, &t.Title)
+			t.ID = id
+			err = db.QueryRow(PSselectThreadId.Name, id).Scan(&t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
 		} else {
-			err = db.QueryRow(updThrSel2, slug).Scan(&t.Author, &t.Created, &t.Forum, &t.ID, &t.Message, &t.Slug, &t.Title)
+			err = db.QueryRow(PSselectThreadSlug.Name, slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
 		}
 
 		if err != nil {
