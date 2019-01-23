@@ -18,12 +18,6 @@ func init() {
 	db = database.Connect()
 }
 
-// const sqlGetPostsFlat = `
-// 	SELECT p.author, p.created, p.forum, p.isedited, p.message, p.parent, p.thread, p.id
-// 	FROM posts p
-// 	WHERE thread = $1
-// `
-
 const selectPostsFlatLimitByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
@@ -234,7 +228,6 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 							RETURNING id,author,created,forum,message,title;`, t.Author, t.Created, t.Forum, t.Message, t.Title).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Title)
 	}
 
-	// log.Println(err)
 	if err != nil {
 		errStr := err.Error()
 		if errStr == "ERROR: duplicate key value violates unique constraint \"idx_threads_slug\" (SQLSTATE 23505)" {
@@ -268,7 +261,6 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 				VALUES ($1,$2,(SELECT id FROM users WHERE nickname=$1))
 				ON CONFLICT DO NOTHING;`, t.Author, t.Forum)
 
-	// db.Exec(`UPDATE participants p SET id = (SELECT id FROM users u WHERE u.nickname = p.nickname);`)
 	/* TRIGGERED-END */
 
 	p, _ := t.MarshalJSON()
@@ -283,12 +275,6 @@ func Threads(ctx *fasthttp.RequestCtx) {
 	db.QueryRow(`SELECT slug
 					FROM forums
 					WHERE slug=$1;`, slugFromURL).Scan(&slug)
-
-	// if err != nil {
-	// 	ErrRespond(ctx, fasthttp.StatusNotFound)
-
-	// 	return
-	// }
 
 	if slug == "" {
 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
@@ -366,12 +352,6 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 						WHERE slug=$1;`, slug).Scan(&thid, &forum)
 	}
 
-	// if err != nil {
-	// 	ut.ErrRespond(ctx, fasthttp.StatusNotFound)
-
-	// 	return
-	// }
-
 	if thid == 0 {
 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
@@ -430,8 +410,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 			rows.Scan(&post.Author, &post.ID, &post.Created, &post.Thread, &post.Parent, &post.Forum, &post.Message)
 			postsResp = append(postsResp, &post)
 		}
-		//err := rows.Err()
-		//log.Println(err)
+
 		if finalRowsErr := rows.Err(); finalRowsErr != nil {
 			if pgerr, ok := finalRowsErr.(pgx.PgError); ok {
 				if pgerr.ConstraintName == "posts_parent_id_fkey" {
@@ -446,20 +425,6 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 				}
 			}
 		}
-
-		// log.Println(err)
-		// if err != nil {
-		// 	if err.Error() == "ERROR: null value in column \"parent_id\" violates not-null constraint (SQLSTATE 23502)" {
-		// 		ut.ErrRespond(ctx, fasthttp.StatusConflict)
-
-		// 		return
-		// 	}
-		// 	if err.Error() == "ERROR: insert or update on table \"posts\" violates foreign key constraint \"posts_author_fkey\" (SQLSTATE 23503)" {
-		// 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
-
-		// 		return
-		// 	}
-		// }
 
 		/* TRIGGERED-BEGIN */
 		//go func() {
@@ -477,10 +442,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 			}
 		}
 		fmt.Fprintf(&insertParticipants, ` ON CONFLICT DO NOTHING;`)
-		//	log.Println(insertParticipants.String())
 		db.Exec(insertParticipants.String())
-
-		//db.Exec(`UPDATE participants p SET id = (SELECT id FROM users u WHERE u.nickname = p.nickname);`)
 		//}()
 
 		p, _ := postsResp.MarshalJSON()
@@ -489,199 +451,6 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 		return
 	}
 }
-
-// func CreatePosts(ctx *fasthttp.RequestCtx) {
-// 	//log.Println("ya tut")
-// 	// not found
-// 	slug, id := slid(ctx)
-// 	var obtainedID int
-// 	var forum string
-
-// 	// tx, _ := db.Begin()
-// 	if id != 0 {
-// 		db.QueryRow(`SELECT id,forum
-// 						FROM threads
-// 						WHERE id=$1;`, id).Scan(&obtainedID, &forum)
-// 	} else {
-// 		db.QueryRow(`SELECT id,forum
-// 						FROM threads
-// 						WHERE slug=$1;`, slug).Scan(&obtainedID, &forum)
-// 	}
-
-// 	if obtainedID == 0 {
-// 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
-
-// 		return
-// 	}
-
-// 	posts := models.PostsArr{}
-// 	posts.UnmarshalJSON(ctx.PostBody())
-
-// 	size := len(posts)
-
-// 	if size == 0 {
-// 		p, _ := posts.MarshalJSON()
-// 		 ut.Respond(ctx, fasthttp.StatusCreated, p)
-
-// 		return
-// 	}
-
-// 	parentsSet := map[int32]bool{}
-// 	authorsSet := map[string]bool{}
-// 	for _, p := range posts {
-// 		if p.Parent != 0 {
-// 			parentsSet[p.Parent] = true
-// 		}
-// 		authorsSet[p.Author] = true
-// 	}
-
-// 	parents := map[int32]*models.Post{}
-// 	//log.Println("aa")
-// 	for pid := range parentsSet {
-// 		tmp := &models.Post{}
-// 		err := db.QueryRow(`SELECT author,created,edited,message,parent_id,forum_slug,thread_id
-// 							FROM posts
-// 							WHERE id=$1`, pid).Scan(&tmp.Author, &tmp.Created, &tmp.IsEdited, &tmp.Message, &tmp.Parent, &tmp.Forum, &tmp.Thread)
-
-// 		if err != nil {
-// 			ut.ErrRespond(ctx, fasthttp.StatusConflict)
-
-// 			return
-// 		}
-// 		if tmp.Thread != int32(obtainedID) {
-// 			ut.ErrRespond(ctx, fasthttp.StatusConflict)
-
-// 			return
-// 		}
-// 		parents[pid] = tmp
-// 	}
-
-// 	uids, ok := UsersCheck(authorsSet)
-// 	if !ok {
-// 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
-
-// 		return
-// 	}
-
-// 	for _, p := range posts {
-// 		p.Thread = int32(obtainedID)
-// 		p.Forum = forum
-// 		if r := parents[p.Parent]; r != nil {
-// 			p.Path = r.Path
-// 		} else {
-// 			p.Path = []int32{}
-// 		}
-// 	}
-// 	// created := time.Now().Format("2006-01-02T15:04:05.999999999Z07:00")
-// 	b, a := postQueryBuilder(posts, obtainedID)
-
-// 	tx, _ := db.Begin()
-// 	defer tx.Rollback()
-
-// 	rows, err := tx.Query(b.String(), a...)
-// 	//log.Println(err)
-// 	if err != nil {
-// 		ut.ErrRespond(ctx, fasthttp.StatusConflict)
-
-// 		return
-// 	}
-// 	defer rows.Close()
-
-// 	for _, p := range posts {
-// 		rows.Next()
-// 		if err := rows.Scan(&p.Created, &p.ID); err != nil {
-// 			ut.ErrRespond(ctx, fasthttp.StatusConflict)
-
-// 			return
-// 		}
-// 	}
-// 	rows.Close()
-
-// 	if _, err := tx.Exec(`UPDATE forums
-// 						SET posts=posts+$1
-// 						WHERE slug=$2;`, size, forum); err != nil {
-
-// 		ut.ErrRespond(ctx, fasthttp.StatusConflict)
-
-// 		return
-// 	}
-
-// 	var insertParticipants strings.Builder
-// 	fmt.Fprintf(&insertParticipants, `INSERT INTO participants(nickname,forum_slug) VALUES `)
-// 	for nickname := range uids {
-// 		// if idx == size-1 {
-// 		// 	fmt.Fprintf(&insertParticipants, `('%s', '%s')`, nickname, forum)
-// 		// } else {
-// 		fmt.Fprintf(&insertParticipants, `('%s', '%s'),`, nickname, forum)
-// 		// }
-// 	}
-// 	fmt.Fprintf(&insertParticipants, `('', '')`)
-// 	fmt.Fprintf(&insertParticipants, ` ON CONFLICT DO NOTHING;`)
-
-// 	tx.Exec(insertParticipants.String())
-
-// 	tx.Commit()
-
-// 	p, _ := posts.MarshalJSON()
-// 	 ut.Respond(ctx, fasthttp.StatusCreated, p)
-
-// 	return
-// }
-
-// func postQueryBuilder(ps models.PostsArr, tid int) (*strings.Builder, []interface{}) {
-// 	b := &strings.Builder{}
-// 	a := []interface{}{}
-
-// 	b.WriteString("INSERT INTO posts(author, thread_id, message, parent_id, edited, path, forum_slug) VALUES ")
-// 	for i, p := range ps {
-// 		if i != 0 {
-// 			b.WriteString(", ")
-// 		}
-
-// 		c := 6 * i
-// 		b.WriteString(fmt.Sprintf("($%d, $%d, $%d, $%d, false, $%d, $%d)",
-// 			c+1, c+2, c+3, c+4, c+5, c+6))
-// 		a = append(a, p.Author, tid, p.Message, p.Parent, pq.Array(p.Path), p.Forum)
-// 	}
-// 	b.WriteString(" RETURNING created, id")
-
-// 	return b, a
-// }
-
-// func UsersCheck(nicks map[string]bool) (map[string]string, bool) {
-// 	if len(nicks) == 0 {
-// 		return nil, true
-// 	}
-
-// 	arr := make([]string, 0, len(nicks))
-// 	for n := range nicks {
-// 		arr = append(arr, n)
-// 	}
-// 	rows, err := db.Query(`
-// 		SELECT email
-// 		FROM users
-// 		WHERE nickname = ANY (ARRAY['` + strings.Join(arr, "', '") + `'])
-// 	`)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	defer rows.Close()
-
-// 	r := map[string]string{}
-// 	for _, n := range arr {
-// 		if !rows.Next() {
-// 			return nil, false
-// 		}
-// 		var t string
-// 		err = rows.Scan(&t)
-
-// 		if err != nil {
-// 			panic(err)
-// 		}
-// 		r[n] = t
-// 	}
-// 	return r, true
-// }
 
 func Vote(ctx *fasthttp.RequestCtx) {
 	slug, id := slid(ctx)
@@ -796,7 +565,6 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	}
 
 	var rows *pgx.Rows
-	var err error
 
 	switch sort {
 	case "":
@@ -804,54 +572,20 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	case "flat":
 		if since != 0 {
 			if desc {
-				// log.Println(selectPostsFlatLimitSinceDescByID)
-				// log.Println(id)
-				// log.Println(since)
-				// log.Println(limit)
 				rows, _ = db.Query(selectPostsFlatLimitSinceDescByID, id,
 					since, limit)
 			} else {
-				// log.Println(selectPostsFlatLimitSinceByID)
-				// log.Println(id)
-				// log.Println(since)
-				// log.Println(limit)
 				rows, _ = db.Query(selectPostsFlatLimitSinceByID, id,
 					since, limit)
 			}
 		} else {
 			if desc {
-				// log.Println(selectPostsFlatLimitDescByID)
-				// log.Println(id)
-				// log.Println(since)
-				// log.Println(limit)
 				rows, _ = db.Query(selectPostsFlatLimitDescByID, id, limit)
 			} else {
-				// log.Println(selectPostsFlatLimitByID)
-				// log.Println(id)
-				// log.Println(since)
-				// log.Println(limit)
 				rows, _ = db.Query(selectPostsFlatLimitByID, id, limit)
 			}
 		}
 	case "tree":
-		// var query strings.Builder
-		// fmt.Fprint(&query, sqlGetPostsFlat)
-		// if since != 0 {
-		// 	if desc {
-		// 		fmt.Fprint(&query, " AND p.path < (SELECT path FROM posts WHERE id = $2)")
-		// 	} else {
-		// 		fmt.Fprint(&query, " AND p.path > (SELECT path FROM posts WHERE id = $2)")
-		// 	}
-		// } else {
-		// 	fmt.Fprint(&query, " AND $2 = 0")
-		// } //!
-		// if desc {
-		// 	fmt.Fprint(&query, " ORDER BY p.path DESC")
-		// } else {
-		// 	fmt.Fprint(&query, " ORDER BY p.path")
-		// }
-		// fmt.Fprint(&query, " LIMIT $3")
-
 		if since != 0 {
 			if desc {
 				rows, _ = db.Query(`
@@ -889,16 +623,10 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 									`, id, limit)
 			}
 		}
-
-		// log.Println(query.String())
-		// log.Println(id)
-		// log.Println(since)
-		// log.Println(limit)
-		//rows, _ = db.Query(query.String(), id, since, limit)
 	case "parent_tree":
 		if since != 0 {
 			if desc {
-				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
+				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
 									WHERE
 									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
@@ -907,7 +635,7 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 									LIMIT $3)
 									ORDER BY path[1] DESC, p.path`, id, since, limit)
 			} else {
-				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
+				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
 									WHERE
 									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
@@ -918,7 +646,7 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 			}
 		} else {
 			if desc {
-				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
+				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
 									WHERE
 									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
@@ -926,7 +654,7 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 									LIMIT $2)
 									ORDER BY path[1] DESC, p.path`, id, limit)
 			} else {
-				rows, err = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
+				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 									FROM posts p
 									WHERE
 									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
@@ -935,46 +663,15 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 									ORDER BY p.path`, id, limit)
 			}
 		}
-
-		// var query strings.Builder
-		// fmt.Fprint(&query, sqlGetPostsParentTree)
-		// if since != 0 {
-		// 	if desc {
-		// 		fmt.Fprint(&query, " AND p2.id < (SELECT path[1] FROM posts WHERE id=$2)")
-		// 	} else {
-		// 		fmt.Fprint(&query, " AND p2.id > (SELECT path[1] FROM posts WHERE id=$2)")
-		// 	}
-		// } else {
-		// 	fmt.Fprint(&query, " AND $2 = 0")
-		// }
-		// if desc {
-		// 	fmt.Fprint(&query, " ORDER BY p2.id DESC")
-		// } else {
-		// 	fmt.Fprint(&query, " ORDER BY p2.id")
-		// }
-		// fmt.Fprint(&query, " LIMIT $3)")
-		// if desc {
-		// 	fmt.Fprint(&query, " ORDER BY path[1] DESC, p.path")
-		// } else {
-		// 	fmt.Fprint(&query, " ORDER BY p.path")
-		// }
-
-		// log.Println(query.String())
-		// log.Println(id)
-		// log.Println(since)
-		// log.Println(limit)
-		// rows, err = db.Query(query.String(), id, since, limit)
 	}
 
 	posts := make(models.PostsArr, 0, limit)
 	for rows.Next() {
 		temp := models.Post{Thread: id}
-		err = rows.Scan(&temp.ID, &temp.Author, &temp.Created, &temp.IsEdited, &temp.Message, &temp.Parent, &temp.Forum)
+		rows.Scan(&temp.ID, &temp.Author, &temp.Created, &temp.IsEdited, &temp.Message, &temp.Parent, &temp.Forum)
 		posts = append(posts, &temp)
 
 	}
-	err = err
-	//log.Println(err)
 	rows.Close()
 
 	p, _ := posts.MarshalJSON()

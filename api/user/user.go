@@ -73,12 +73,6 @@ func InfoUser(ctx *fasthttp.RequestCtx) {
 
 	db.QueryRow(userByNicknameExtendedSelect, u.Nickname).Scan(&u.About, &u.Email, &u.Fullname, &u.Nickname)
 
-	// if err != nil {
-	// 	 ut.ErrRespond(ctx, fasthttp.StatusNotFound)
-
-	// 	return
-	// }
-
 	if u.Email == "" {
 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 

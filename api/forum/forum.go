@@ -145,7 +145,6 @@ func InfoForum(ctx *fasthttp.RequestCtx) {
 	f := models.Forum{}
 	f.Slug = ctx.UserValue("slug").(string)
 
-	//!
 	db.QueryRow(forumInfoExtendedSelect, f.Slug).Scan(&f.Slug, &f.Title, &f.User, &f.Posts, &f.Threads)
 
 	if f.Title == "" {
@@ -169,95 +168,39 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 	obtainedSlug := ""
 	db.QueryRow(forumSlugSelect, slug).Scan(&obtainedSlug)
 
-	// if err != nil {
-	// 	ut.ErrRespond(ctx, fasthttp.StatusNotFound)
-
-	// 	return
-	// }
-
 	if obtainedSlug == "" {
 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
 		return
 	}
 
-	// var rows *pgx.Rows
-	// var query strings.Builder
-	// var err error
-	// query.WriteString(sqlSelectUserForum)
-	// if since != "" {
-	// 	if desc {
-	// 		fmt.Fprint(&query, " AND uf.nickname < $2")
-	// 	} else {
-	// 		fmt.Fprint(&query, " AND uf.nickname > $2 ")
-	// 	}
-	// } else {
-	// 	fmt.Fprint(&query, " AND $2 = ''")
-	// }
-	// if desc {
-	// 	fmt.Fprint(&query, " ORDER BY uf.nickname DESC")
-	// } else {
-	// 	fmt.Fprint(&query, " ORDER BY uf.nickname ASC")
-	// }
-	// if limit > 0 {
-	// 	fmt.Fprint(&query, " LIMIT $3")
-	// } else {
-	// 	fmt.Fprint(&query, " LIMIT 100000+$3")
-	// }
-	// rows, err = db.Query(query.String(), slug, since, limit)
-
 	var rows *pgx.Rows
-	//var err error
 	if desc {
 		if limit > 0 {
 			if since != "" {
 				rows, _ = db.Query(descSlugSinceLimit, slug, since, limit)
-				// log.Println(descSlugSinceLimit)
-				// log.Println(slug)
-				// log.Println(since)
-				// log.Println(limit)
 			} else {
 				rows, _ = db.Query(descSlugLimit, slug, limit)
-				// log.Println(descSlugLimit)
-				// log.Println(slug)
-				// log.Println(limit)
 			}
 		} else {
 			if since != "" {
 				rows, _ = db.Query(descSlugSince, slug, since)
-				// log.Println(descSlugSince)
-				// log.Println(slug)
-				// log.Println(since)
 			} else {
 				rows, _ = db.Query(descSlug, slug)
-				// log.Println(descSlug)
-				// log.Println(slug)
 			}
 		}
 	} else {
 		if limit > 0 {
 			if since != "" {
 				rows, _ = db.Query(ascSlugSinceLimit, slug, since, limit)
-				// log.Println(ascSlugSinceLimit)
-				// log.Println(slug)
-				// log.Println(since)
-				// log.Println(limit)
 			} else {
 				rows, _ = db.Query(ascSlugLimit, slug, limit)
-				// log.Println(ascSlugLimit)
-				// log.Println(slug)
-				// log.Println(limit)
 			}
 		} else {
 			if since != "" {
 				rows, _ = db.Query(ascSlugSince, slug, since)
-				// log.Println(ascSlugSince)
-				// log.Println(slug)
-				// log.Println(since)
 			} else {
 				rows, _ = db.Query(ascSlug, slug)
-				// log.Println(ascSlug)
-				// log.Println(slug)
 			}
 		}
 	}
@@ -268,7 +211,6 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 		rows.Scan(&user.Nickname, &user.About, &user.Fullname, &user.Email)
 		users = append(users, &user)
 	}
-	//err = err
 	rows.Close()
 
 	p, _ := users.MarshalJSON()

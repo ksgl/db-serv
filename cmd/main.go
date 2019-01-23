@@ -1,7 +1,6 @@
 package main
 
 import (
-	//	API "forum/api"
 	"forum/api/forum"
 	"forum/api/post"
 	"forum/api/service"
@@ -12,20 +11,6 @@ import (
 
 	"github.com/valyala/fasthttp"
 )
-
-// ./tech-db-forum func -u http://localhost:5000/api -r report.html
-// pgbadger --prefix '%t [%p]: [%l-1] ' -f stderr /usr/local/var/log/postgres.log -o /users/ksenia/Desktop/postgres.html
-
-// func  h fasthttp.RequestHandler) fasthttp.RequestHandler {
-// 	return fasthttp.RequestHandler(func(ctx *fasthttp.RequestCtx) {
-
-// 		startTime := time.Now()
-// 		h(ctx)
-// 		duration := time.Now().Sub(startTime)
-// 		fmt.Println(float64(duration)/float64(time.Millisecond), string(ctx.RequestURI()))
-
-// 	})
-// }
 
 func main() {
 	r := fasthttprouter.New()

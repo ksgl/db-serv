@@ -153,49 +153,11 @@ func InfoPost(ctx *fasthttp.RequestCtx) {
 
 		return
 	} else {
-		// var query strings.Builder
-		// var from strings.Builder
-		// fmt.Fprintf(&query, `SELECT p.id,p.parent_id,p.thread_id,p.message,p.edited,p.created,p.forum_slug,p.author,`)
-		// fmt.Fprintf(&from, ` FROM posts AS p `)
-		// if uRel {
-		// 	fmt.Fprintf(&query, `u.nickname,u.about,u.fullname,u.email,`)
-		// 	fmt.Fprintf(&from, `LEFT JOIN users AS u
-		// 					ON u.nickname=p.author AND true=$1 `)
-		// } else {
-		// 	fmt.Fprintf(&query, `'','','','',`)
-		// 	fmt.Fprintf(&from, `LEFT JOIN users AS u
-		// 					ON u.nickname=p.author AND true=$1 `)
-		// }
-		// if thRel {
-		// 	fmt.Fprintf(&query, `t.author,t.created,t.votes,t.id,t.title,t.message,COALESCE(t.slug,''),t.forum,`)
-		// 	fmt.Fprintf(&from, `LEFT JOIN threads AS t
-		// 					ON t.id=p.thread_id  AND true=$2 `)
-		// } else {
-		// 	fmt.Fprintf(&query, `'',NULL,0,0,'','','','',`)
-		// 	fmt.Fprintf(&from, `LEFT JOIN threads AS t
-		// 					ON t.id=p.thread_id  AND true=$2 `)
-		// }
-		// if fRel {
-		// 	fmt.Fprintf(&query, `f.slug,f.threads,f.title,f.posts,f."user"`)
-		// 	fmt.Fprintf(&from, `LEFT JOIN forums AS f
-		// 					ON f.slug=p.forum_slug AND true=$3 `)
-		// } else {
-		// 	fmt.Fprintf(&query, `'',0,'',0,''`)
-		// 	fmt.Fprintf(&from, `LEFT JOIN forums AS f
-		// 					ON f.slug=p.forum_slug AND true=$3 `)
-		// }
-		// fmt.Fprintf(&from, ` WHERE p.id=$4`)
-		// fmt.Fprintf(&query, from.String())
-
 		postRel := &models.Post{}
 		authorRel := &models.User{}
 		threadRel := &models.Thread{}
 		forumRel := &models.Forum{}
 		time := &pgtype.Timestamptz{}
-		// db.QueryRow(query.String(), uRel, thRel, fRel, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
-		// 	&authorRel.Nickname, &authorRel.About, &authorRel.Fullname, &authorRel.Email,
-		// 	&threadRel.Author, time, &threadRel.Votes, &threadRel.ID, &threadRel.Title, &threadRel.Message, &threadRel.Slug, &threadRel.Forum,
-		// 	&forumRel.Slug, &forumRel.Threads, &forumRel.Title, &forumRel.Posts, &forumRel.User)
 
 		if uRel {
 			if thRel {
@@ -241,7 +203,6 @@ func InfoPost(ctx *fasthttp.RequestCtx) {
 
 		postRel.ID = int64(id)
 
-		//log.Println(err)
 		if postRel.Author == "" {
 			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
 
