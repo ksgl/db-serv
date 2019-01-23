@@ -18,7 +18,8 @@ func init() {
 	db = database.Connect()
 }
 
-const selectPostsFlatLimitByID = `
+const (
+	selectPostsFlatLimitByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE p.thread_id = $1
@@ -26,7 +27,7 @@ const selectPostsFlatLimitByID = `
 	LIMIT $2
 `
 
-const selectPostsFlatLimitDescByID = `
+	selectPostsFlatLimitDescByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE p.thread_id = $1
@@ -34,14 +35,14 @@ const selectPostsFlatLimitDescByID = `
 	LIMIT $2
 `
 
-const selectPostsFlatLimitSinceByID = `
+	selectPostsFlatLimitSinceByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE p.thread_id = $1 and p.id > $2
 	ORDER BY created, p.id
 	LIMIT $3
 `
-const selectPostsFlatLimitSinceDescByID = `
+	selectPostsFlatLimitSinceDescByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE p.thread_id = $1 and p.id < $2
@@ -49,7 +50,7 @@ const selectPostsFlatLimitSinceDescByID = `
 	LIMIT $3
 `
 
-const selectPostsTreeLimitByID = `
+	selectPostsTreeLimitByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE p.thread_id = $1
@@ -57,7 +58,7 @@ const selectPostsTreeLimitByID = `
 	LIMIT $2
 `
 
-const selectPostsTreeLimitDescByID = `
+	selectPostsTreeLimitDescByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE p.thread_id = $1
@@ -65,7 +66,7 @@ const selectPostsTreeLimitDescByID = `
 	LIMIT $2
 `
 
-const selectPostsTreeLimitSinceByID = `
+	selectPostsTreeLimitSinceByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE p.thread_id = $1 and (p.path > (SELECT p2.path from posts p2 where p2.id = $2))
@@ -73,7 +74,7 @@ const selectPostsTreeLimitSinceByID = `
 	LIMIT $3
 `
 
-const selectPostsTreeLimitSinceDescByID = `
+	selectPostsTreeLimitSinceDescByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE p.thread_id = $1 and (p.path < (SELECT p2.path from posts p2 where p2.id = $2))
@@ -81,7 +82,7 @@ const selectPostsTreeLimitSinceDescByID = `
 	LIMIT $3
 `
 
-const selectPostsParentTreeLimitByID = `
+	selectPostsParentTreeLimitByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE p.thread_id = $1 and p.path[1] IN (
@@ -94,7 +95,7 @@ const selectPostsParentTreeLimitByID = `
 	ORDER BY path
 `
 
-const selectPostsParentTreeLimitDescByID = `
+	selectPostsParentTreeLimitDescByID = `
 SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 FROM posts p
 WHERE p.thread_id = $1 and p.path[1] IN (
@@ -107,7 +108,7 @@ WHERE p.thread_id = $1 and p.path[1] IN (
 ORDER BY p.path[1] DESC, p.path
 `
 
-const selectPostsParentTreeLimitSinceByID = `
+	selectPostsParentTreeLimitSinceByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE p.thread_id = $1 and p.path[1] IN (
@@ -120,7 +121,7 @@ const selectPostsParentTreeLimitSinceByID = `
 	ORDER BY p.path
 `
 
-const selectPostsParentTreeLimitSinceDescByID = `
+	selectPostsParentTreeLimitSinceDescByID = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE p.thread_id = $1 and p.path[1] IN (
@@ -133,17 +134,18 @@ const selectPostsParentTreeLimitSinceDescByID = `
 	ORDER BY p.path[1] DESC, p.path
 `
 
-const sqlGetPostsFlat = `
+	sqlGetPostsFlat = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE thread_id = $1
 	`
 
-const sqlGetPostsParentTree = `
+	sqlGetPostsParentTree = `
 	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
 	FROM posts p
 	WHERE path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
 `
+)
 
 const (
 	selDescLimitSince = `SELECT id,author,created,message,COALESCE(slug,''),title,votes
