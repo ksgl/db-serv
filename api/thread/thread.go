@@ -391,12 +391,15 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 		i := 1
 		for _, post := range posts {
 			if post.Parent != 0 {
-				valueStrings = append(valueStrings, fmt.Sprintf(`($%d, $%d, $%d,
+				valueStrings = append(valueStrings, fmt.Sprintf(`((SELECT nextval('posts_id_seq')::integer), $%d, $%d, $%d,
 					(SELECT
 					(CASE WHEN EXISTS
 					(SELECT 1
 					FROM posts p
-					WHERE p.id=$%d AND p.thread_id=$%d) THEN $%d ELSE -1 END)), $%d)`, i, i+1, i+2, i+3, i+4, i+5, i+6))
+					WHERE p.id=$%d AND p.thread_id=$%d) THEN $%d ELSE -1 END)), array_append(
+						(SELECT path FROM posts WHERE id=$%d),
+						  (SELECT currval('posts_id_seq')::integer)),
+						  $%d)`, i, i+1, i+2, i+3, i+4, i+5, i+5, i+6))
 				valueArgs = append(valueArgs, post.Author)
 				valueArgs = append(valueArgs, post.Message)
 				valueArgs = append(valueArgs, thid)
@@ -406,7 +409,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 				valueArgs = append(valueArgs, forum)
 				i += 7
 			} else {
-				valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, %s, $%d)", i, i+1, i+2, "NULL", i+3))
+				valueStrings = append(valueStrings, fmt.Sprintf("((SELECT nextval('posts_id_seq')::integer), $%d, $%d, $%d, %s, array_append('{}', (SELECT currval('posts_id_seq')::integer)), $%d)", i, i+1, i+2, "NULL", i+3))
 				valueArgs = append(valueArgs, post.Author)
 				valueArgs = append(valueArgs, post.Message)
 				valueArgs = append(valueArgs, thid)
@@ -416,7 +419,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 		}
 
 		var query strings.Builder
-		fmt.Fprintf(&query, `INSERT INTO posts(author,message,thread_id,parent_id,forum_slug) VALUES %s`, strings.Join(valueStrings, ","))
+		fmt.Fprintf(&query, `INSERT INTO posts(id,author,message,thread_id,parent_id,path,forum_slug) VALUES %s`, strings.Join(valueStrings, ","))
 		fmt.Fprintf(&query, ` RETURNING author,id,created,thread_id,COALESCE(parent_id,0),forum_slug,message;`)
 
 		rows, _ := db.Query(query.String(), valueArgs...)
