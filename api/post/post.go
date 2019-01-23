@@ -17,7 +17,32 @@ var db *pgx.ConnPool
 
 func init() {
 	db = database.Connect()
+	PSpostInfoSelect, _ = db.Prepare("postInfoSelect", postInfoSelect)
+	PSupdatePost, _ = db.Prepare("updatePost", updatePost)
+	PSselectPost, _ = db.Prepare("selectPost", selectPost)
+	PSr, _ = db.Prepare("r", r)
+	PSrUTF, _ = db.Prepare("rUTF", rUTF)
+	PSrUT, _ = db.Prepare("rUT", rUT)
+	PSrUF, _ = db.Prepare("rUF", rUF)
+	PSrU, _ = db.Prepare("rU", rU)
+	PSrT, _ = db.Prepare("rT", rT)
+	PSrTF, _ = db.Prepare("rTF", rTF)
+	PSrF, _ = db.Prepare("rF", rF)
 }
+
+var (
+	PSpostInfoSelect *pgx.PreparedStatement
+	PSupdatePost     *pgx.PreparedStatement
+	PSselectPost     *pgx.PreparedStatement
+	PSr              *pgx.PreparedStatement
+	PSrUTF           *pgx.PreparedStatement
+	PSrUT            *pgx.PreparedStatement
+	PSrUF            *pgx.PreparedStatement
+	PSrU             *pgx.PreparedStatement
+	PSrT             *pgx.PreparedStatement
+	PSrTF            *pgx.PreparedStatement
+	PSrF             *pgx.PreparedStatement
+)
 
 const (
 	postInfoSelect = `SELECT thread_id,message,edited,created,forum_slug,author
@@ -140,7 +165,7 @@ func InfoPost(ctx *fasthttp.RequestCtx) {
 	if len(params) == 0 {
 		post := &models.PostPost{}
 		post.Post.ID = int64(id)
-		db.QueryRow(selectPost, id).Scan(&post.Post.Parent, &post.Post.Thread, &post.Post.Message, &post.Post.IsEdited, &post.Post.Created, &post.Post.Forum, &post.Post.Author)
+		db.QueryRow(PSselectPost.Name, id).Scan(&post.Post.Parent, &post.Post.Thread, &post.Post.Message, &post.Post.IsEdited, &post.Post.Created, &post.Post.Forum, &post.Post.Author)
 
 		if post.Post.Author == "" {
 			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
@@ -162,41 +187,41 @@ func InfoPost(ctx *fasthttp.RequestCtx) {
 		if uRel {
 			if thRel {
 				if fRel {
-					db.QueryRow(rUTF, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
+					db.QueryRow(PSrUTF.Name, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
 						&authorRel.Nickname, &authorRel.About, &authorRel.Fullname, &authorRel.Email,
 						&threadRel.Author, time, &threadRel.Votes, &threadRel.ID, &threadRel.Title, &threadRel.Message, &threadRel.Slug, &threadRel.Forum,
 						&forumRel.Slug, &forumRel.Threads, &forumRel.Title, &forumRel.Posts, &forumRel.User)
 				} else if !fRel {
-					db.QueryRow(rUT, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
+					db.QueryRow(PSrUT.Name, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
 						&authorRel.Nickname, &authorRel.About, &authorRel.Fullname, &authorRel.Email,
 						&threadRel.Author, time, &threadRel.Votes, &threadRel.ID, &threadRel.Title, &threadRel.Message, &threadRel.Slug, &threadRel.Forum)
 				}
 			} else if !thRel {
 				if fRel {
-					db.QueryRow(rUF, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
+					db.QueryRow(PSrUF.Name, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
 						&authorRel.Nickname, &authorRel.About, &authorRel.Fullname, &authorRel.Email,
 						&forumRel.Slug, &forumRel.Threads, &forumRel.Title, &forumRel.Posts, &forumRel.User)
 				} else {
-					db.QueryRow(rU, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
+					db.QueryRow(PSrU.Name, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
 						&authorRel.Nickname, &authorRel.About, &authorRel.Fullname, &authorRel.Email)
 				}
 			}
 		} else if !uRel {
 			if thRel {
 				if fRel {
-					db.QueryRow(rTF, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
+					db.QueryRow(PSrTF.Name, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
 						&threadRel.Author, time, &threadRel.Votes, &threadRel.ID, &threadRel.Title, &threadRel.Message, &threadRel.Slug, &threadRel.Forum,
 						&forumRel.Slug, &forumRel.Threads, &forumRel.Title, &forumRel.Posts, &forumRel.User)
 				} else if !fRel {
-					db.QueryRow(rT, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
+					db.QueryRow(PSrT.Name, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
 						&threadRel.Author, time, &threadRel.Votes, &threadRel.ID, &threadRel.Title, &threadRel.Message, &threadRel.Slug, &threadRel.Forum)
 				}
 			} else if !thRel {
 				if fRel {
-					db.QueryRow(rF, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
+					db.QueryRow(PSrF.Name, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author,
 						&forumRel.Slug, &forumRel.Threads, &forumRel.Title, &forumRel.Posts, &forumRel.User)
 				} else {
-					db.QueryRow(r, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author)
+					db.QueryRow(PSr.Name, id).Scan(&postRel.Parent, &postRel.Thread, &postRel.Message, &postRel.IsEdited, &postRel.Created, &postRel.Forum, &postRel.Author)
 				}
 			}
 		}
@@ -239,7 +264,7 @@ func UpdatePost(ctx *fasthttp.RequestCtx) {
 
 	if update.Message == "" {
 		post := &models.Post{}
-		db.QueryRow(postInfoSelect, id).Scan(&post.Thread, &post.Message, &post.IsEdited, &post.Created, &post.Forum, &post.Author)
+		db.QueryRow(PSpostInfoSelect.Name, id).Scan(&post.Thread, &post.Message, &post.IsEdited, &post.Created, &post.Forum, &post.Author)
 
 		if post.Author == "" {
 			ut.ErrRespond(ctx, fasthttp.StatusNotFound)
@@ -257,7 +282,7 @@ func UpdatePost(ctx *fasthttp.RequestCtx) {
 
 	post := &models.Post{}
 
-	db.QueryRow(updatePost, update.Message, id).Scan(&post.Author, &post.Created, &post.Forum, &post.IsEdited, &post.Message, &post.Thread)
+	db.QueryRow(PSupdatePost.Name, update.Message, id).Scan(&post.Author, &post.Created, &post.Forum, &post.IsEdited, &post.Message, &post.Thread)
 	post.ID = int64(id)
 	if post.Author == "" {
 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
