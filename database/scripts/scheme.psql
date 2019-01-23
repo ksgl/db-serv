@@ -70,6 +70,7 @@ CREATE TABLE posts (
   thread_id   INT         NOT NULL
 );
 
+CREATE INDEX idx_posts_threadid_created_id    ON posts(thread_id, created, id);
 CREATE INDEX idx_posts_threadid_parentid_id   ON posts(thread_id, parent_id, id);
 CREATE INDEX idx_posts_threadid_id            ON posts(thread_id, id) WHERE parent_id IS NULL;;
 CREATE INDEX idx_posts_threadid_path          ON posts(thread_id, path);

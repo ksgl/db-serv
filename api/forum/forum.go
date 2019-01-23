@@ -1,11 +1,9 @@
 package forum
 
 import (
-	"fmt"
 	ut "forum/api/utility"
 	"forum/database"
 	"forum/models"
-	"strings"
 
 	"github.com/jackc/pgx"
 	"github.com/valyala/fasthttp"
@@ -204,67 +202,36 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// var rows *pgx.Rows
-	// if desc {
-	// 	if limit > 0 {
-	// 		if since != "" {
-	// 			rows, _ = db.Query(PSdescSlugSinceLimit.Name, slug, since, limit)
-	// 		} else {
-	// 			rows, _ = db.Query(PSdescSlugLimit.Name, slug, limit)
-	// 		}
-	// 	} else {
-	// 		if since != "" {
-	// 			rows, _ = db.Query(PSdescSlugSince.Name, slug, since)
-	// 		} else {
-	// 			rows, _ = db.Query(PSdescSlug.Name, slug)
-	// 		}
-	// 	}
-	// } else {
-	// 	if limit > 0 {
-	// 		if since != "" {
-	// 			rows, _ = db.Query(PSascSlugSinceLimit.Name, slug, since, limit)
-	// 		} else {
-	// 			rows, _ = db.Query(PSascSlugLimit.Name, slug, limit)
-	// 		}
-	// 	} else {
-	// 		if since != "" {
-	// 			rows, _ = db.Query(PSascSlugSince.Name, slug, since)
-	// 		} else {
-	// 			rows, _ = db.Query(PSascSlug.Name, slug)
-	// 		}
-	// 	}
-	// }
-
-	// users := make(models.UsersArr, 0, limit)
-	// for rows.Next() {
-	// 	user := models.User{}
-	// 	rows.Scan(&user.Nickname, &user.About, &user.Fullname, &user.Email)
-	// 	users = append(users, &user)
-	// }
-	// rows.Close()
-
-	var query strings.Builder
-	fmt.Fprint(&query, citext)
-	if since != "" {
-		if desc {
-			fmt.Fprint(&query, " AND p.nickname < $2")
+	var rows *pgx.Rows
+	if desc {
+		if limit > 0 {
+			if since != "" {
+				rows, _ = db.Query(PSdescSlugSinceLimit.Name, slug, since, limit)
+			} else {
+				rows, _ = db.Query(PSdescSlugLimit.Name, slug, limit)
+			}
 		} else {
-			fmt.Fprint(&query, " AND p.nickname > $2 ")
+			if since != "" {
+				rows, _ = db.Query(PSdescSlugSince.Name, slug, since)
+			} else {
+				rows, _ = db.Query(PSdescSlug.Name, slug)
+			}
 		}
 	} else {
-		fmt.Fprint(&query, " AND $2 = ''")
+		if limit > 0 {
+			if since != "" {
+				rows, _ = db.Query(PSascSlugSinceLimit.Name, slug, since, limit)
+			} else {
+				rows, _ = db.Query(PSascSlugLimit.Name, slug, limit)
+			}
+		} else {
+			if since != "" {
+				rows, _ = db.Query(PSascSlugSince.Name, slug, since)
+			} else {
+				rows, _ = db.Query(PSascSlug.Name, slug)
+			}
+		}
 	}
-	if desc {
-		fmt.Fprint(&query, " ORDER BY p.nickname DESC")
-	} else {
-		fmt.Fprint(&query, " ORDER BY p.nickname ASC")
-	}
-	if limit > 0 {
-		fmt.Fprint(&query, " LIMIT $3")
-	} else {
-		fmt.Fprint(&query, " LIMIT 100000+$3")
-	}
-	rows, _ := db.Query(query.String(), obtainedSlug, since, limit)
 
 	users := make(models.UsersArr, 0, limit)
 	for rows.Next() {
@@ -273,6 +240,37 @@ func UsersForum(ctx *fasthttp.RequestCtx) {
 		users = append(users, &user)
 	}
 	rows.Close()
+
+	// var query strings.Builder
+	// fmt.Fprint(&query, citext)
+	// if since != "" {
+	// 	if desc {
+	// 		fmt.Fprint(&query, " AND p.nickname < $2")
+	// 	} else {
+	// 		fmt.Fprint(&query, " AND p.nickname > $2 ")
+	// 	}
+	// } else {
+	// 	fmt.Fprint(&query, " AND $2 = ''")
+	// }
+	// if desc {
+	// 	fmt.Fprint(&query, " ORDER BY p.nickname DESC")
+	// } else {
+	// 	fmt.Fprint(&query, " ORDER BY p.nickname ASC")
+	// }
+	// if limit > 0 {
+	// 	fmt.Fprint(&query, " LIMIT $3")
+	// } else {
+	// 	fmt.Fprint(&query, " LIMIT 100000+$3")
+	// }
+	// rows, _ := db.Query(query.String(), obtainedSlug, since, limit)
+
+	// users := make(models.UsersArr, 0, limit)
+	// for rows.Next() {
+	// 	user := models.User{}
+	// 	rows.Scan(&user.Nickname, &user.About, &user.Fullname, &user.Email)
+	// 	users = append(users, &user)
+	// }
+	// rows.Close()
 
 	p, _ := users.MarshalJSON()
 	ut.Respond(ctx, fasthttp.StatusOK, p)
