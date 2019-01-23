@@ -19,158 +19,117 @@ func init() {
 }
 
 const (
-	selectPostsFlatLimitByID = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE p.thread_id = $1
-	ORDER BY created, p.id
-	LIMIT $2
-`
+	FlatLimitByID = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+					FROM posts p
+					WHERE p.thread_id = $1
+					ORDER BY created, p.id
+					LIMIT $2`
 
-	selectPostsFlatLimitDescByID = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE p.thread_id = $1
-	ORDER BY created DESC, p.id DESC
-	LIMIT $2
-`
+	FlatLimitDescByID = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+						FROM posts p
+						WHERE p.thread_id = $1
+						ORDER BY created DESC, p.id DESC
+						LIMIT $2`
 
-	selectPostsFlatLimitSinceByID = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE p.thread_id = $1 and p.id > $2
-	ORDER BY created, p.id
-	LIMIT $3
-`
-	selectPostsFlatLimitSinceDescByID = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE p.thread_id = $1 and p.id < $2
-	ORDER BY created DESC, p.id DESC
-	LIMIT $3
-`
+	FlatLimitSinceByID = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+						FROM posts p
+						WHERE p.thread_id = $1 and p.id > $2
+						ORDER BY created, p.id
+						LIMIT $3`
 
-	selectPostsTreeLimitByID = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE p.thread_id = $1
-	ORDER BY p.path
-	LIMIT $2
-`
-
-	selectPostsTreeLimitDescByID = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE p.thread_id = $1
-	ORDER BY path DESC
-	LIMIT $2
-`
-
-	selectPostsTreeLimitSinceByID = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE p.thread_id = $1 and (p.path > (SELECT p2.path from posts p2 where p2.id = $2))
-	ORDER BY p.path
-	LIMIT $3
-`
-
-	selectPostsTreeLimitSinceDescByID = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE p.thread_id = $1 and (p.path < (SELECT p2.path from posts p2 where p2.id = $2))
-	ORDER BY p.path DESC
-	LIMIT $3
-`
-
-	selectPostsParentTreeLimitByID = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE p.thread_id = $1 and p.path[1] IN (
-		SELECT p2.path[1]
-		FROM posts p2
-		WHERE p2.thread_id = $2 AND p2.parent_id IS NULL
-		ORDER BY p2.path
-		LIMIT $3
-	)
-	ORDER BY path
-`
-
-	selectPostsParentTreeLimitDescByID = `
-SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-FROM posts p
-WHERE p.thread_id = $1 and p.path[1] IN (
-    SELECT p2.path[1]
-    FROM posts p2
-	WHERE p2.parent_id IS NULL and p2.thread_id = $2
-	ORDER BY p2.path DESC
-    LIMIT $3
+	FlatLimitSinceDescByID = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+							FROM posts p
+							WHERE p.thread_id = $1 and p.id < $2
+							ORDER BY created DESC, p.id DESC
+							LIMIT $3`
 )
-ORDER BY p.path[1] DESC, p.path
-`
 
-	selectPostsParentTreeLimitSinceByID = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE p.thread_id = $1 and p.path[1] IN (
-		SELECT p2.path[1]
-		FROM posts p2
-		WHERE p2.thread_id = $2 AND p2.parent_id IS NULL and p2.path[1] > (SELECT p3.path[1] from posts p3 where p3.id = $3)
-		ORDER BY p2.path
-		LIMIT $4
-	)
-	ORDER BY p.path
-`
+const (
+	tree1 = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+			FROM posts p
+			WHERE thread_id = $1 AND p.path < (SELECT path FROM posts WHERE id = $2)
+			ORDER BY p.path DESC
+			LIMIT $3`
 
-	selectPostsParentTreeLimitSinceDescByID = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE p.thread_id = $1 and p.path[1] IN (
-		SELECT p2.path[1]
-		FROM posts p2
-		WHERE p2.thread_id = $2 AND p2.parent_id IS NULL and p2.path[1] < (SELECT p3.path[1] from posts p3 where p3.id = $3)
-		ORDER BY p2.path DESC
-		LIMIT $4
-	)
-	ORDER BY p.path[1] DESC, p.path
-`
+	tree2 = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+			FROM posts p
+			WHERE thread_id = $1 AND p.path > (SELECT path FROM posts WHERE id = $2)
+			ORDER BY p.path
+			LIMIT $3`
 
-	sqlGetPostsFlat = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE thread_id = $1
-	`
+	tree3 = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+			FROM posts p
+			WHERE thread_id = $1
+			ORDER BY p.path DESC
+			LIMIT $2`
 
-	sqlGetPostsParentTree = `
-	SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-	FROM posts p
-	WHERE path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
-`
+	tree4 = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+			FROM posts p
+			WHERE thread_id = $1
+			ORDER BY p.path
+			LIMIT $2`
+)
+
+const (
+	ptree1 = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+				FROM posts p
+				WHERE
+				path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
+				AND p2.id < (SELECT path[1] FROM posts WHERE id=$2)
+				ORDER BY p2.id DESC
+				LIMIT $3)
+				ORDER BY path[1] DESC, p.path`
+
+	ptree2 = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+				FROM posts p
+				WHERE
+				path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
+				AND p2.id > (SELECT path[1] FROM posts WHERE id=$2)
+				ORDER BY p2.id ASC
+				LIMIT $3)
+				ORDER BY p.path`
+
+	ptree3 = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+				FROM posts p
+				WHERE
+				path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
+				ORDER BY p2.id DESC
+				LIMIT $2)
+				ORDER BY path[1] DESC, p.path`
+
+	ptree4 = `SELECT p.id,p.author,p.created,p.edited,p.message,COALESCE(p.parent_id,0),p.forum_slug
+				FROM posts p
+				WHERE
+				path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
+				ORDER BY p2.id
+				LIMIT $2)
+				ORDER BY p.path`
 )
 
 const (
 	selDescLimitSince = `SELECT id,author,created,message,COALESCE(slug,''),title,votes
-					FROM threads
-					WHERE forum=$1 AND created <= $2 ORDER BY created DESC LIMIT $3;`
+						FROM threads
+						WHERE forum=$1 AND created <= $2 ORDER BY created DESC LIMIT $3;`
 
 	selDescLimit = `SELECT id,author,created,message,COALESCE(slug,''),title,votes
-				FROM threads
-				WHERE forum=$1 ORDER BY created DESC LIMIT $2;`
+					FROM threads
+					WHERE forum=$1 ORDER BY created DESC LIMIT $2;`
 
 	selDescSince = `SELECT id,author,created,message,COALESCE(slug,''),title,votes
-			FROM threads
-			WHERE forum=$1 AND created <= $2 ORDER BY created DESC;`
+					FROM threads
+					WHERE forum=$1 AND created <= $2 ORDER BY created DESC;`
 
 	selDesc = `SELECT id,author,created,message,COALESCE(slug,''),title,votes
-			FROM threads
-			WHERE forum=$1 ORDER BY created DESC;`
+				FROM threads
+				WHERE forum=$1 ORDER BY created DESC;`
 
 	selAscLimitSince = `SELECT id,author,created,message,COALESCE(slug,''),title,votes
-					FROM threads
-					WHERE forum=$1 AND created >= $2 ORDER BY created ASC LIMIT $3;`
+						FROM threads
+						WHERE forum=$1 AND created >= $2 ORDER BY created ASC LIMIT $3;`
 
 	selAscLimit = `SELECT id,author,created,message,COALESCE(slug,''),title,votes
-				FROM threads
-				WHERE forum=$1 ORDER BY created ASC LIMIT $2;`
+					FROM threads
+					WHERE forum=$1 ORDER BY created ASC LIMIT $2;`
 
 	selAscSince = `SELECT id,author,created,message,COALESCE(slug,''),title,votes
 				FROM threads
@@ -181,12 +140,97 @@ const (
 			WHERE forum=$1 ORDER BY created ASC;`
 
 	selectThreadId = `SELECT author,created,forum,message,COALESCE(slug,''),title,votes
-			FROM threads
-			WHERE id=$1`
+						FROM threads
+						WHERE id=$1`
 
 	selectThreadSlug = `SELECT id,author,created,forum,message,COALESCE(slug,''),title,votes
-			FROM threads
-			WHERE slug=$1`
+						FROM threads
+						WHERE slug=$1`
+)
+
+const (
+	insertThreadsSlug = `INSERT INTO threads(author,created,forum,message,title,slug)
+						VALUES((SELECT nickname
+								FROM users
+								WHERE nickname=$1),
+								$2::timestamptz,
+								(SELECT slug
+								FROM forums
+								WHERE slug=$3),
+								$4,$5,$6)
+						RETURNING id,author,created,forum,message,title,slug;`
+
+	insertThreads = `INSERT INTO threads(author,created,forum,message,title)
+						VALUES((SELECT nickname
+								FROM users
+								WHERE nickname=$1),
+								$2::timestamptz,
+								(SELECT slug
+								FROM forums
+								WHERE slug=$3),
+								$4,$5)
+						RETURNING id,author,created,forum,message,title;`
+
+	threadsInfoExtendedSelect = `SELECT id,author,created,forum,message,slug,title,votes
+								FROM threads
+								WHERE slug=$1;`
+
+	updateForums = `UPDATE forums
+					SET threads=threads+1
+					WHERE slug=$1;`
+
+	insertParticipants = `INSERT INTO participants(nickname,forum_slug,id)
+					VALUES ($1,$2,(SELECT id FROM users WHERE nickname=$1))
+					ON CONFLICT DO NOTHING;`
+
+	forumsBySlugSelect = `SELECT slug
+					FROM forums
+					WHERE slug=$1;`
+
+	threadsInfoShortSelectBySlug = `SELECT id,forum
+									FROM threads
+									WHERE slug=$1;`
+
+	threadsInfoShortSelectByID = `SELECT id,forum
+									FROM threads
+									WHERE id=$1;`
+
+	updThrSel1 = `SELECT author,created,forum,id,message,slug,title
+					FROM threads
+					WHERE id=$1;`
+
+	updThrSel2 = `SELECT author,created,forum,id,message,slug,title
+					FROM threads
+					WHERE slug=$1;`
+
+	updForumsWithPosts = `UPDATE forums
+					SET posts=posts+$1
+					WHERE slug=$2;`
+
+	thrIDSelByID = `SELECT id
+					FROM threads
+					WHERE id=$1;`
+
+	thrIDSelBySlug = `SELECT id
+					FROM threads
+					WHERE slug=$1;`
+
+	voteInsert1 = `INSERT INTO votes(nickname, thread_id, voice)
+					VALUES($1, $2, $3)
+					ON CONFLICT ON CONSTRAINT votes_pkey DO
+					UPDATE SET voice=$3
+					WHERE votes.thread_id=$2
+					AND votes.nickname=$1;`
+
+	voteInsert2 = `INSERT INTO votes(nickname, thread_id, voice)
+					VALUES($1,
+						  (SELECT id
+							  FROM threads
+							  WHERE slug=$2), $3)
+				  ON CONFLICT ON CONSTRAINT votes_pkey DO
+				  UPDATE SET voice=$3
+				  WHERE votes.thread_id=(SELECT id FROM threads WHERE slug=$2)
+				  AND votes.nickname=$1;`
 )
 
 func slid(ctx *fasthttp.RequestCtx) (string, int) {
@@ -207,35 +251,15 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 
 	var err error
 	if t.Slug != "" {
-		err = db.QueryRow(`INSERT INTO threads(author,created,forum,message,title,slug)
-							VALUES((SELECT nickname
-									FROM users
-									WHERE nickname=$1),
-									$2::timestamptz,
-									(SELECT slug
-									FROM forums
-									WHERE slug=$3),
-									$4,$5,$6)
-							RETURNING id,author,created,forum,message,title,slug;`, t.Author, t.Created, t.Forum, t.Message, t.Title, t.Slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Title, &t.Slug)
+		err = db.QueryRow(insertThreadsSlug, t.Author, t.Created, t.Forum, t.Message, t.Title, t.Slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Title, &t.Slug)
 	} else {
-		err = db.QueryRow(`INSERT INTO threads(author,created,forum,message,title)
-							VALUES((SELECT nickname
-									FROM users
-									WHERE nickname=$1),
-									$2::timestamptz,
-									(SELECT slug
-									FROM forums
-									WHERE slug=$3),
-									$4,$5)
-							RETURNING id,author,created,forum,message,title;`, t.Author, t.Created, t.Forum, t.Message, t.Title).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Title)
+		err = db.QueryRow(insertThreads, t.Author, t.Created, t.Forum, t.Message, t.Title).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Title)
 	}
 
 	if err != nil {
 		errStr := err.Error()
 		if errStr == "ERROR: duplicate key value violates unique constraint \"idx_threads_slug\" (SQLSTATE 23505)" {
-			err = db.QueryRow(`SELECT id,author,created,forum,message,slug,title,votes
-			FROM threads
-			WHERE slug=$1;`, t.Slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
+			err = db.QueryRow(threadsInfoExtendedSelect, t.Slug).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
 
 			p, _ := t.MarshalJSON()
 			ut.Respond(ctx, fasthttp.StatusConflict, p)
@@ -255,13 +279,9 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 	}
 
 	/* TRIGGERED-BEGIN */
-	db.Exec(`UPDATE forums
-				SET threads=threads+1
-				WHERE slug=$1;`, t.Forum)
+	db.Exec(updateForums, t.Forum)
 
-	db.Exec(`INSERT INTO participants(nickname,forum_slug,id)
-				VALUES ($1,$2,(SELECT id FROM users WHERE nickname=$1))
-				ON CONFLICT DO NOTHING;`, t.Author, t.Forum)
+	db.Exec(insertParticipants, t.Author, t.Forum)
 
 	/* TRIGGERED-END */
 
@@ -274,9 +294,7 @@ func CreateThread(ctx *fasthttp.RequestCtx) {
 func Threads(ctx *fasthttp.RequestCtx) {
 	slugFromURL := ctx.UserValue("slug").(string)
 	slug := ""
-	db.QueryRow(`SELECT slug
-					FROM forums
-					WHERE slug=$1;`, slugFromURL).Scan(&slug)
+	db.QueryRow(forumsBySlugSelect, slugFromURL).Scan(&slug)
 
 	if slug == "" {
 		ut.ErrRespond(ctx, fasthttp.StatusNotFound)
@@ -345,13 +363,9 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 	size := len(posts)
 
 	if id != 0 {
-		db.QueryRow(`SELECT id,forum
-						FROM threads
-						WHERE id=$1;`, id).Scan(&thid, &forum)
+		db.QueryRow(threadsInfoShortSelectByID, id).Scan(&thid, &forum)
 	} else {
-		db.QueryRow(`SELECT id,forum
-						FROM threads
-						WHERE slug=$1;`, slug).Scan(&thid, &forum)
+		db.QueryRow(threadsInfoShortSelectBySlug, slug).Scan(&thid, &forum)
 	}
 
 	if thid == 0 {
@@ -430,9 +444,7 @@ func CreatePosts(ctx *fasthttp.RequestCtx) {
 
 		/* TRIGGERED-BEGIN */
 		//go func() {
-		db.Exec(`UPDATE forums
-			SET posts=posts+$1
-			WHERE slug=$2;`, size, forum)
+		db.Exec(updForumsWithPosts, size, forum)
 
 		var insertParticipants strings.Builder
 		fmt.Fprintf(&insertParticipants, `INSERT INTO participants(nickname,forum_slug,id) VALUES `)
@@ -468,12 +480,7 @@ func Vote(ctx *fasthttp.RequestCtx) {
 	var insert strings.Builder
 
 	if id != 0 {
-		fmt.Fprintf(&insert, `INSERT INTO votes(nickname, thread_id, voice)
-							VALUES($1, $2, $3)
-							ON CONFLICT ON CONSTRAINT votes_pkey DO
-							UPDATE SET voice=$3
-							WHERE votes.thread_id=$2
-							AND votes.nickname=$1;`)
+		fmt.Fprintf(&insert, voteInsert1)
 
 		_, err := db.Exec(insert.String(), vote.Nickname, id, vote.Voice)
 
@@ -488,15 +495,7 @@ func Vote(ctx *fasthttp.RequestCtx) {
 
 		err = db.QueryRow(query.String(), id).Scan(&t.ID, &t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.Votes)
 	} else {
-		fmt.Fprintf(&insert, `INSERT INTO votes(nickname, thread_id, voice)
-							  VALUES($1,
-									(SELECT id
-										FROM threads
-										WHERE slug=$2), $3)
-							ON CONFLICT ON CONSTRAINT votes_pkey DO
-							UPDATE SET voice=$3
-							WHERE votes.thread_id=(SELECT id FROM threads WHERE slug=$2)
-							AND votes.nickname=$1;`)
+		fmt.Fprintf(&insert, voteInsert2)
 		_, err := db.Exec(insert.String(), vote.Nickname, slug, vote.Voice)
 
 		if err != nil {
@@ -551,13 +550,9 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	var id int32
 	var errThr error
 	if idFromURL != 0 {
-		errThr = db.QueryRow(`SELECT id
-						FROM threads
-						WHERE id=$1;`, idFromURL).Scan(&id)
+		errThr = db.QueryRow(thrIDSelByID, idFromURL).Scan(&id)
 	} else {
-		errThr = db.QueryRow(`SELECT id
-							FROM threads
-							WHERE slug=$1;`, slug).Scan(&id)
+		errThr = db.QueryRow(thrIDSelBySlug, slug).Scan(&id)
 	}
 
 	if errThr != nil {
@@ -574,95 +569,45 @@ func SortPosts(ctx *fasthttp.RequestCtx) {
 	case "flat":
 		if since != 0 {
 			if desc {
-				rows, _ = db.Query(selectPostsFlatLimitSinceDescByID, id,
+				rows, _ = db.Query(FlatLimitSinceDescByID, id,
 					since, limit)
 			} else {
-				rows, _ = db.Query(selectPostsFlatLimitSinceByID, id,
+				rows, _ = db.Query(FlatLimitSinceByID, id,
 					since, limit)
 			}
 		} else {
 			if desc {
-				rows, _ = db.Query(selectPostsFlatLimitDescByID, id, limit)
+				rows, _ = db.Query(FlatLimitDescByID, id, limit)
 			} else {
-				rows, _ = db.Query(selectPostsFlatLimitByID, id, limit)
+				rows, _ = db.Query(FlatLimitByID, id, limit)
 			}
 		}
 	case "tree":
 		if since != 0 {
 			if desc {
-				rows, _ = db.Query(`
-							SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-							FROM posts p
-							WHERE thread_id = $1 AND p.path < (SELECT path FROM posts WHERE id = $2)
-							ORDER BY p.path DESC
-							LIMIT $3
-							`, id, since, limit)
+				rows, _ = db.Query(tree1, id, since, limit)
 			} else {
-				rows, _ = db.Query(`
-								SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-								FROM posts p
-								WHERE thread_id = $1 AND p.path > (SELECT path FROM posts WHERE id = $2)
-								ORDER BY p.path
-								LIMIT $3
-								`, id, since, limit)
+				rows, _ = db.Query(tree2, id, since, limit)
 			}
 		} else {
 			if desc {
-				rows, _ = db.Query(`
-								SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-								FROM posts p
-								WHERE thread_id = $1
-								ORDER BY p.path DESC
-								LIMIT $2
-								`, id, limit)
+				rows, _ = db.Query(tree3, id, limit)
 			} else {
-				rows, _ = db.Query(`
-									SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-									FROM posts p
-									WHERE thread_id = $1
-									ORDER BY p.path
-									LIMIT $2
-									`, id, limit)
+				rows, _ = db.Query(tree4, id, limit)
 			}
 		}
 	case "parent_tree":
 		if since != 0 {
 			if desc {
-				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-									FROM posts p
-									WHERE
-									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
-									AND p2.id < (SELECT path[1] FROM posts WHERE id=$2)
-									ORDER BY p2.id DESC
-									LIMIT $3)
-									ORDER BY path[1] DESC, p.path`, id, since, limit)
+				rows, _ = db.Query(ptree1, id, since, limit)
 			} else {
-				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-									FROM posts p
-									WHERE
-									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
-									AND p2.id > (SELECT path[1] FROM posts WHERE id=$2)
-									ORDER BY p2.id ASC
-									LIMIT $3)
-									ORDER BY p.path`, id, since, limit)
+				rows, _ = db.Query(ptree2, id, since, limit)
 			}
 		} else {
 			if desc {
-				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-									FROM posts p
-									WHERE
-									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
-									ORDER BY p2.id DESC
-									LIMIT $2)
-									ORDER BY path[1] DESC, p.path`, id, limit)
+				rows, _ = db.Query(ptree3, id, limit)
 			} else {
-				rows, _ = db.Query(`SELECT p.id, p.author, p.created, p.edited, p.message, COALESCE(p.parent_id,0), p.forum_slug
-									FROM posts p
-									WHERE
-									path[1] IN (SELECT id FROM posts p2 WHERE p2.thread_id=$1 AND p2.parent_id IS NULL
-									ORDER BY p2.id
-									LIMIT $2)
-									ORDER BY p.path`, id, limit)
+				rows, _ = db.Query(ptree4, id, limit)
 			}
 		}
 	}
@@ -691,13 +636,9 @@ func UpdateThread(ctx *fasthttp.RequestCtx) {
 	if update.Message == "" && update.Title == "" {
 		var err error
 		if id != 0 {
-			err = db.QueryRow(`SELECT author,created,forum,id,message,slug,title
-								FROM threads
-								WHERE id=$1;`, id).Scan(&t.Author, &t.Created, &t.Forum, &t.ID, &t.Message, &t.Slug, &t.Title)
+			err = db.QueryRow(updThrSel1, id).Scan(&t.Author, &t.Created, &t.Forum, &t.ID, &t.Message, &t.Slug, &t.Title)
 		} else {
-			err = db.QueryRow(`SELECT author,created,forum,id,message,slug,title
-								FROM threads
-								WHERE slug=$1;`, slug).Scan(&t.Author, &t.Created, &t.Forum, &t.ID, &t.Message, &t.Slug, &t.Title)
+			err = db.QueryRow(updThrSel2, slug).Scan(&t.Author, &t.Created, &t.Forum, &t.ID, &t.Message, &t.Slug, &t.Title)
 		}
 
 		if err != nil {
