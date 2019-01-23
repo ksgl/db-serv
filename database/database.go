@@ -9,7 +9,7 @@ import (
 var DB *pgx.ConnPool
 var once sync.Once
 
-const maxConn = 50
+const maxConn = 8
 
 func Connect() (conn *pgx.ConnPool) {
 	once.Do(func() {
